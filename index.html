@@ -15,7 +15,6 @@
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #fda4af; border-radius: 10px; }
         
-        /* Animations */
         @keyframes fadeInScale {
             from { opacity: 0; transform: scale(0.95) translateY(10px); }
             to { opacity: 1; transform: scale(1) translateY(0); }
@@ -39,15 +38,27 @@
             box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.1);
             border-color: #fb7185;
         }
-        
-        .stagger-1 { animation-delay: 0.1s; }
-        .stagger-2 { animation-delay: 0.2s; }
-        .stagger-3 { animation-delay: 0.3s; }
+
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: white;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease;
+        }
     </style>
 </head>
 <body class="antialiased min-h-screen pb-20">
 
-    <!-- Background Heart Particles -->
+    <div id="loading-screen" class="loading-overlay">
+        <div class="w-16 h-16 border-4 border-rose-100 border-t-rose-500 rounded-full animate-spin mb-4"></div>
+        <p class="text-rose-500 font-bold animate-pulse">Menghubungkan ke Cloud...</p>
+    </div>
+
     <div id="heart-container"></div>
 
     <!-- Modal Login -->
@@ -61,11 +72,9 @@
             <p class="text-[10px] text-slate-400 uppercase tracking-[0.3em] font-black mb-10">Lalu Wira Sandi & Bahjatunnisa</p>
             <div class="space-y-4">
                 <button onclick="login('wira')" class="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-3 shadow-xl shadow-rose-100 hover:scale-[1.02] active:scale-95">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     Masuk sebagai Wira
                 </button>
                 <button onclick="login('bahja')" class="w-full bg-white border-2 border-rose-100 text-rose-500 font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-3 hover:bg-rose-50 hover:scale-[1.02] active:scale-95">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     Masuk sebagai Bahja
                 </button>
             </div>
@@ -107,7 +116,8 @@
                     <p class="text-[10px] text-rose-400 font-black uppercase tracking-widest">LDR Edition</p>
                 </div>
             </div>
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div id="connection-status" class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
                 <div id="user-avatar" onclick="showTab('profil')" class="w-12 h-12 rounded-2xl bg-rose-50 border-2 border-rose-200 flex items-center justify-center text-rose-500 font-black cursor-pointer hover:scale-110 transition-transform overflow-hidden shadow-sm">?</div>
             </div>
         </div>
@@ -120,21 +130,16 @@
     </header>
 
     <main class="max-w-6xl mx-auto px-6 py-10">
-
         <!-- TAB: DASHBOARD -->
         <section id="tab-dashboard" class="tab-content space-y-8 animate-reveal">
-            <!-- Hero Stats -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div class="lg:col-span-2 glass-card p-10 rounded-[3rem] shadow-xl shadow-rose-100 flex flex-col md:flex-row items-center gap-10 relative overflow-hidden">
-                    <div class="absolute top-0 right-0 p-8 opacity-5">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 24 24" fill="currentColor"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-                    </div>
                     <div class="text-center md:text-left flex-1 z-10">
                         <span class="bg-rose-100 text-rose-600 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">Monthly Summary</span>
                         <h3 class="text-4xl font-serif font-bold text-slate-800 mt-4 mb-4">Bagaimana kabar kita bulan ini?</h3>
                         <div class="flex flex-wrap gap-3 mt-6">
-                            <button onclick="getAIAnalysis()" class="bg-slate-800 text-white px-6 py-3 rounded-2xl font-bold text-sm flex items-center gap-2 hover:bg-slate-700 transition-all hover:shadow-lg">✨ Tanya AI Insight</button>
-                            <select id="month-selector" onchange="changeMonth()" class="bg-white border-2 border-rose-50 text-rose-500 font-bold rounded-2xl px-6 py-3 outline-none cursor-pointer text-sm shadow-sm"></select>
+                            <button onclick="getAIAnalysis()" class="bg-slate-800 text-white px-6 py-3 rounded-2xl font-bold text-sm flex items-center gap-2 hover:bg-slate-700 transition-all">✨ Tanya AI Insight</button>
+                            <select id="month-selector" onchange="changeMonth()" class="bg-white border-2 border-rose-50 text-rose-500 font-bold rounded-2xl px-6 py-3 outline-none cursor-pointer text-sm"></select>
                         </div>
                     </div>
                     <div class="w-48 h-48 bg-white rounded-full flex flex-col items-center justify-center shadow-inner border-8 border-rose-50 z-10">
@@ -142,7 +147,6 @@
                         <div id="love-score" class="text-6xl font-serif font-bold text-rose-500">0.0</div>
                     </div>
                 </div>
-
                 <div class="glass-card p-8 rounded-[3rem] shadow-lg flex flex-col justify-center gap-6">
                     <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-4">Relationship Balance</h4>
                     <div class="h-64">
@@ -150,378 +154,361 @@
                     </div>
                 </div>
             </div>
-
-            <!-- 2-Player Status -->
+            <!-- Status Row -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div id="card-wira" class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-center gap-6 group hover:shadow-md transition-all">
-                    <div id="dash-avatar-wira" class="w-20 h-20 rounded-[1.5rem] bg-blue-50 text-blue-500 flex items-center justify-center text-2xl font-black shadow-sm overflow-hidden group-hover:scale-105 transition-transform">W</div>
+                <div id="card-wira" class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-center gap-6">
+                    <div id="dash-avatar-wira" class="w-20 h-20 rounded-[1.5rem] bg-blue-50 text-blue-500 flex items-center justify-center text-2xl font-black overflow-hidden">W</div>
                     <div>
                         <p class="text-[10px] font-black text-blue-400 uppercase tracking-widest">User Wira</p>
                         <h4 id="dash-name-wira" class="text-xl font-bold text-slate-800">Lalu Wira Sandi</h4>
-                        <span id="status-wira" class="text-[10px] mt-2 inline-block px-3 py-1 rounded-full font-bold">Pending</span>
+                        <span id="status-wira" class="text-[10px] mt-2 inline-block px-3 py-1 rounded-full font-bold bg-slate-100">Menunggu</span>
                     </div>
                 </div>
-                <div id="card-bahja" class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-center gap-6 group hover:shadow-md transition-all">
-                    <div id="dash-avatar-bahja" class="w-20 h-20 rounded-[1.5rem] bg-pink-50 text-pink-500 flex items-center justify-center text-2xl font-black shadow-sm overflow-hidden group-hover:scale-105 transition-transform">B</div>
+                <div id="card-bahja" class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-center gap-6">
+                    <div id="dash-avatar-bahja" class="w-20 h-20 rounded-[1.5rem] bg-pink-50 text-pink-500 flex items-center justify-center text-2xl font-black overflow-hidden">B</div>
                     <div>
                         <p class="text-[10px] font-black text-pink-400 uppercase tracking-widest">User Bahja</p>
                         <h4 id="dash-name-bahja" class="text-xl font-bold text-slate-800">Bahjatunnisa</h4>
-                        <span id="status-bahja" class="text-[10px] mt-2 inline-block px-3 py-1 rounded-full font-bold">Pending</span>
+                        <span id="status-bahja" class="text-[10px] mt-2 inline-block px-3 py-1 rounded-full font-bold bg-slate-100">Menunggu</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Media Section -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+             <!-- Media Section -->
+             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-rose-50 overflow-hidden relative group">
                     <div class="flex justify-between items-center mb-6">
                         <h4 class="font-bold text-slate-800 flex items-center gap-3">📸 Moment of the Month</h4>
-                        <button onclick="document.getElementById('shared-photo-input').click()" class="text-[10px] font-black text-rose-500 uppercase hover:underline">Upload Baru</button>
+                        <label class="text-[10px] font-black text-rose-500 uppercase cursor-pointer hover:underline">
+                            Upload Baru
+                            <input type="file" class="hidden" accept="image/*" onchange="uploadSharedPhoto(this)">
+                        </label>
                     </div>
-                    <div id="photo-preview" class="w-full aspect-video bg-rose-50/50 rounded-3xl flex flex-col items-center justify-center border-2 border-dashed border-rose-100 cursor-pointer hover:bg-rose-50 transition-colors overflow-hidden">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="text-rose-300 mb-2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-                        <span class="text-xs font-bold text-rose-300">Belum ada foto yang diunggah</span>
+                    <div id="photo-preview" class="w-full aspect-video bg-rose-50/50 rounded-3xl flex flex-col items-center justify-center border-2 border-dashed border-rose-100 overflow-hidden">
+                        <span class="text-xs font-bold text-rose-300">Belum ada foto</span>
                     </div>
-                    <input type="file" id="shared-photo-input" class="hidden" accept="image/*" onchange="uploadSharedPhoto(this)">
                 </div>
 
                 <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-purple-50">
-                    <h4 class="font-bold text-slate-800 mb-6 flex items-center gap-3">🎬 TikTok Recommendation</h4>
+                    <h4 class="font-bold text-slate-800 mb-6 flex items-center gap-3">🎬 Shared TikTok</h4>
                     <div class="space-y-4">
-                        <div class="relative">
-                            <input type="text" id="tiktok-input" onchange="updateTikTok()" placeholder="Paste link TikTok di sini..." class="w-full bg-slate-50 border-2 border-transparent focus:border-purple-200 rounded-2xl p-5 text-sm outline-none transition-all pr-12">
-                            <div class="absolute right-5 top-5 text-purple-300">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                            </div>
-                        </div>
-                        <div id="tiktok-link-container" class="hidden animate-reveal">
-                            <a href="#" id="tiktok-btn" target="_blank" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-indigo-100 hover:scale-[1.02] transition-transform">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                                Buka Link TikTok
-                            </a>
+                        <input type="text" id="tiktok-input" onchange="updateSharedData('tiktokUrl', this.value)" placeholder="Tempel link TikTok di sini..." class="w-full bg-slate-50 border-2 border-transparent focus:border-purple-200 rounded-2xl p-5 text-sm outline-none transition-all">
+                        <div id="tiktok-container" class="hidden">
+                            <a href="#" id="tiktok-link" target="_blank" class="w-full bg-purple-600 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2">Tonton TikTok</a>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- TAB: EVALUASI (The 9 Points) -->
-        <section id="tab-evaluasi" class="tab-content hidden space-y-10 pb-20 animate-reveal">
-            <div class="bg-rose-500 p-10 rounded-[3rem] text-white shadow-2xl shadow-rose-100 flex flex-col md:flex-row justify-between items-center gap-8">
-                <div class="text-center md:text-left">
-                    <h3 class="text-3xl font-serif font-bold">9 Point Evaluasi LDR</h3>
-                    <p class="text-rose-100 text-sm mt-2 font-medium opacity-80">Refleksi mendalam untuk hubungan yang lebih kuat.</p>
+        <!-- TAB: EVALUASI -->
+        <section id="tab-evaluasi" class="tab-content hidden space-y-10 animate-reveal">
+            <div class="bg-rose-500 p-10 rounded-[3rem] text-white shadow-xl flex flex-col md:flex-row justify-between items-center gap-6">
+                <div>
+                    <h3 class="text-3xl font-serif font-bold">LDR Evaluation Form</h3>
+                    <p class="opacity-80">Data tersinkronisasi otomatis ke awan.</p>
                 </div>
-                <button onclick="generateAILoveLetter()" class="bg-white/20 hover:bg-white/30 text-white font-black py-4 px-8 rounded-2xl flex items-center justify-center gap-3 border border-white/30 backdrop-blur-sm transition-all hover:scale-105">
-                    ✨ Generate Love Letter AI
-                </button>
+                <button onclick="generateAILoveLetter()" class="bg-white text-rose-500 px-8 py-3 rounded-2xl font-bold shadow-lg">✨ AI Love Letter</button>
             </div>
 
-            <div id="eval-form-grid" class="grid grid-cols-1 gap-8">
+            <div class="space-y-8 max-w-3xl mx-auto">
                 <!-- 1. Komunikasi -->
-                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-                    <div class="flex items-center gap-4 mb-8">
-                        <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500 shadow-sm font-black italic">01</div>
-                        <h4 class="text-xl font-bold text-slate-800">Komunikasi</h4>
-                    </div>
-                    <div class="space-y-6">
-                        <div>
-                            <label class="text-sm font-bold text-slate-500 block mb-4">Seberapa sering kita komunikasi bulan ini?</label>
-                            <div class="flex flex-wrap gap-3" id="group-comm_freq">
-                                <button onclick="setEval('comm_freq', 'Sangat sering')" class="option-btn bg-slate-50 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest border border-transparent transition-all">Sangat Sering</button>
-                                <button onclick="setEval('comm_freq', 'Cukup sering')" class="option-btn bg-slate-50 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest border border-transparent transition-all">Cukup Sering</button>
-                                <button onclick="setEval('comm_freq', 'Jarang')" class="option-btn bg-slate-50 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest border border-transparent transition-all">Jarang</button>
-                                <button onclick="setEval('comm_freq', 'Sangat jarang')" class="option-btn bg-slate-50 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest border border-transparent transition-all">Sangat Jarang</button>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                            <textarea oninput="setEval('comm_good', this.value)" placeholder="Yang sudah baik dari komunikasi kita..." class="w-full bg-slate-50/50 border-2 border-transparent focus:border-blue-100 rounded-3xl p-6 text-sm outline-none h-32 input-focus-effect"></textarea>
-                            <textarea oninput="setEval('comm_bad', this.value)" placeholder="Yang perlu diperbaiki..." class="w-full bg-slate-50/50 border-2 border-transparent focus:border-blue-100 rounded-3xl p-6 text-sm outline-none h-32 input-focus-effect"></textarea>
-                        </div>
-                        <div class="bg-blue-50/50 p-6 rounded-3xl">
-                            <label class="text-xs font-black text-blue-500 uppercase tracking-widest block mb-4">Nilai Komunikasi: <span id="val-comm_score" class="text-lg">5</span>/10</label>
-                            <input type="range" min="1" max="10" oninput="setEval('comm_score', this.value)" class="w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 2. Quality Time -->
-                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-                    <div class="flex items-center gap-4 mb-8">
-                        <div class="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-500 shadow-sm font-black italic">02</div>
-                        <h4 class="text-xl font-bold text-slate-800">Quality Time LDR</h4>
-                    </div>
-                    <div class="space-y-6">
-                        <div>
-                            <label class="text-sm font-bold text-slate-500 block mb-4">Apakah kita punya quality time bulan ini?</label>
-                            <div class="flex flex-wrap gap-3" id="group-qt_freq">
-                                <button onclick="setEval('qt_freq', 'Banyak')" class="option-btn bg-slate-50 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest border border-transparent transition-all">Banyak</button>
-                                <button onclick="setEval('qt_freq', 'Cukup')" class="option-btn bg-slate-50 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest border border-transparent transition-all">Cukup</button>
-                                <button onclick="setEval('qt_freq', 'Sedikit')" class="option-btn bg-slate-50 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest border border-transparent transition-all">Sedikit</button>
-                                <button onclick="setEval('qt_freq', 'Tidak ada')" class="option-btn bg-slate-50 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest border border-transparent transition-all">Tidak Ada</button>
-                            </div>
-                        </div>
-                        <textarea oninput="setEval('qt_best', this.value)" placeholder="Quality time paling berkesan bulan ini..." class="w-full bg-slate-50/50 border-2 border-transparent focus:border-amber-100 rounded-3xl p-6 text-sm outline-none h-24 input-focus-effect"></textarea>
-                        <textarea oninput="setEval('qt_next', this.value)" placeholder="Yang ingin dilakukan bulan depan..." class="w-full bg-slate-50/50 border-2 border-transparent focus:border-amber-100 rounded-3xl p-6 text-sm outline-none h-24 input-focus-effect"></textarea>
-                    </div>
-                </div>
-
-                <!-- 3. Kepercayaan -->
-                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-                    <div class="flex items-center gap-4 mb-8">
-                        <div class="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500 shadow-sm font-black italic">03</div>
-                        <h4 class="text-xl font-bold text-slate-800">Kepercayaan</h4>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <div class="bg-slate-50 p-6 rounded-3xl">
-                            <p class="text-xs font-bold text-slate-500 mb-4">Apakah ada rasa curiga / overthinking?</p>
-                            <div class="flex gap-2" id="group-trust_overthinking">
-                                <button onclick="setEval('trust_overthinking', 'Ada')" class="option-btn-mini flex-1 bg-white py-2 rounded-xl text-[10px] font-black uppercase border border-slate-100">Ada</button>
-                                <button onclick="setEval('trust_overthinking', 'Tidak')" class="option-btn-mini flex-1 bg-white py-2 rounded-xl text-[10px] font-black uppercase border border-slate-100">Tidak</button>
-                            </div>
-                        </div>
-                        <div class="bg-slate-50 p-6 rounded-3xl">
-                            <p class="text-xs font-bold text-slate-500 mb-4">Pasangan memberi kabar dengan baik?</p>
-                            <div class="flex gap-2" id="group-trust_update">
-                                <button onclick="setEval('trust_update', 'Ya')" class="option-btn-mini flex-1 bg-white py-2 rounded-xl text-[10px] font-black uppercase border border-slate-100">Ya</button>
-                                <button onclick="setEval('trust_update', 'Tidak')" class="option-btn-mini flex-1 bg-white py-2 rounded-xl text-[10px] font-black uppercase border border-slate-100">Tidak</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-emerald-50/50 p-6 rounded-3xl mb-6">
-                        <label class="text-xs font-black text-emerald-500 uppercase tracking-widest block mb-4">Nilai Kepercayaan: <span id="val-trust_score" class="text-lg">5</span>/10</label>
-                        <input type="range" min="1" max="10" oninput="setEval('trust_score', this.value)" class="w-full h-2 bg-emerald-100 rounded-lg appearance-none cursor-pointer accent-emerald-500">
-                    </div>
-                    <textarea oninput="setEval('trust_notes', this.value)" placeholder="Penjelasan tambahan..." class="w-full bg-slate-50/50 border-2 border-transparent focus:border-emerald-100 rounded-3xl p-6 text-sm outline-none h-24 input-focus-effect"></textarea>
-                </div>
-
-                <!-- 4. Masalah / Konflik -->
-                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-                    <div class="flex items-center gap-4 mb-8">
-                        <div class="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-500 shadow-sm font-black italic">04</div>
-                        <h4 class="text-xl font-bold text-slate-800">Masalah / Konflik</h4>
-                    </div>
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border">
+                    <h4 class="text-xl font-bold mb-6 text-rose-500">1. Komunikasi</h4>
                     <div class="space-y-4">
-                        <textarea oninput="setEval('conflict_desc', this.value)" placeholder="Masalah yang terjadi bulan ini..." class="w-full bg-slate-50/50 border-2 border-transparent focus:border-rose-100 rounded-3xl p-6 text-sm outline-none h-24 input-focus-effect"></textarea>
-                        <textarea oninput="setEval('conflict_solve', this.value)" placeholder="Bagaimana cara kita menyelesaikannya?" class="w-full bg-slate-50/50 border-2 border-transparent focus:border-rose-100 rounded-3xl p-6 text-sm outline-none h-24 input-focus-effect"></textarea>
-                        <textarea oninput="setEval('conflict_status', this.value)" placeholder="Apakah sudah selesai atau masih mengganjal?" class="w-full bg-slate-50/50 border-2 border-transparent focus:border-rose-100 rounded-3xl p-6 text-sm outline-none h-24 input-focus-effect"></textarea>
-                    </div>
-                </div>
-
-                <!-- 5. Perasaan -->
-                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-                    <div class="flex items-center gap-4 mb-8">
-                        <div class="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-500 shadow-sm font-black italic">05</div>
-                        <h4 class="text-xl font-bold text-slate-800">Perasaan Dalam Hubungan</h4>
-                    </div>
-                    <p class="text-sm font-bold text-slate-500 mb-6">Bulan ini aku merasa:</p>
-                    <div class="flex flex-wrap gap-3 mb-6" id="group-feelings">
-                        <button onclick="toggleFeeling('Bahagia')" class="feeling-btn bg-slate-50 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all">Bahagia</button>
-                        <button onclick="toggleFeeling('Biasa Saja')" class="feeling-btn bg-slate-50 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all">Biasa Saja</button>
-                        <button onclick="toggleFeeling('Sedih')" class="feeling-btn bg-slate-50 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all">Sedih</button>
-                        <button onclick="toggleFeeling('Capek')" class="feeling-btn bg-slate-50 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all">Capek</button>
-                        <button onclick="toggleFeeling('Kesepian')" class="feeling-btn bg-slate-50 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all">Kesepian</button>
-                        <button onclick="toggleFeeling('Dicintai')" class="feeling-btn bg-slate-50 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all">Dicintai</button>
-                        <button onclick="toggleFeeling('Tidak Diperhatikan')" class="feeling-btn bg-slate-50 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all">Tidak Diperhatikan</button>
-                    </div>
-                    <textarea oninput="setEval('feelings_notes', this.value)" placeholder="Ceritakan lebih detail perasaanmu..." class="w-full bg-slate-50/50 border-2 border-transparent focus:border-purple-100 rounded-3xl p-6 text-sm outline-none h-32 input-focus-effect"></textarea>
-                </div>
-
-                <!-- 6. Apresiasi -->
-                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-                    <div class="flex items-center gap-4 mb-8">
-                        <div class="w-12 h-12 bg-pink-50 rounded-2xl flex items-center justify-center text-pink-500 shadow-sm font-black italic">06</div>
-                        <h4 class="text-xl font-bold text-slate-800">Apresiasi Untuk Pasangan</h4>
-                    </div>
-                    <textarea oninput="setEval('appreciation', this.value)" placeholder="Hal-hal yang kamu hargai dari dia bulan ini..." class="w-full bg-slate-50/50 border-2 border-transparent focus:border-pink-100 rounded-3xl p-6 text-sm outline-none h-40 input-focus-effect"></textarea>
-                    <p class="text-[10px] text-slate-400 mt-4 italic">*Contoh: Sabar dengerin aku, meluangkan waktu telepon, dll.</p>
-                </div>
-
-                <!-- 7. Evaluasi Diri -->
-                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-                    <div class="flex items-center gap-4 mb-8">
-                        <div class="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-500 shadow-sm font-black italic">07</div>
-                        <h4 class="text-xl font-bold text-slate-800">Evaluasi Diri Sendiri</h4>
-                    </div>
-                    <div class="space-y-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="bg-slate-50 p-5 rounded-2xl flex items-center justify-between">
-                                <span class="text-xs font-bold text-slate-600">Terlalu Menuntut?</span>
-                                <div class="flex gap-2" id="group-self_menuntut">
-                                    <button onclick="setEval('self_menuntut', 'Ya')" class="option-btn-mini bg-white px-4 py-1.5 rounded-lg text-[9px] font-black border">Ya</button>
-                                    <button onclick="setEval('self_menuntut', 'Tidak')" class="option-btn-mini bg-white px-4 py-1.5 rounded-lg text-[9px] font-black border">Tidak</button>
-                                </div>
-                            </div>
-                            <div class="bg-slate-50 p-5 rounded-2xl flex items-center justify-between">
-                                <span class="text-xs font-bold text-slate-600">Sudah Ngabarin?</span>
-                                <div class="flex gap-2" id="group-self_kabar">
-                                    <button onclick="setEval('self_kabar', 'Ya')" class="option-btn-mini bg-white px-4 py-1.5 rounded-lg text-[9px] font-black border">Ya</button>
-                                    <button onclick="setEval('self_kabar', 'Belum')" class="option-btn-mini bg-white px-4 py-1.5 rounded-lg text-[9px] font-black border">Belum</button>
-                                </div>
-                            </div>
+                        <label class="block text-sm font-bold text-slate-600">Skor Komunikasi (1-10)</label>
+                        <div class="flex items-center gap-4">
+                            <input type="range" min="1" max="10" onchange="updateEvalData('comm_score', this.value)" id="eval-comm_score" class="flex-1 accent-rose-500">
+                            <span id="display-comm_score" class="font-bold text-lg">5</span>
                         </div>
-                        <textarea oninput="setEval('self_notes', this.value)" placeholder="Jawaban refleksi diri lainnya..." class="w-full bg-slate-50/50 border-2 border-transparent focus:border-indigo-100 rounded-3xl p-6 text-sm outline-none h-32 input-focus-effect"></textarea>
+                        <textarea onchange="updateEvalData('comm_notes', this.value)" id="eval-comm_notes" placeholder="Apa yang bisa ditingkatkan?" class="w-full bg-slate-50 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-rose-200 h-24"></textarea>
                     </div>
                 </div>
 
-                <!-- 8. Harapan -->
-                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-                    <div class="flex items-center gap-4 mb-8">
-                        <div class="w-12 h-12 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-500 shadow-sm font-black italic">08</div>
-                        <h4 class="text-xl font-bold text-slate-800">Harapan Bulan Depan</h4>
-                    </div>
-                    <textarea oninput="setEval('expectations', this.value)" placeholder="Misal: Lebih sering VC, nabung ketemu..." class="w-full bg-slate-50/50 border-2 border-transparent focus:border-teal-100 rounded-3xl p-6 text-sm outline-none h-32 input-focus-effect"></textarea>
-                </div>
-
-                <!-- 9. Penilaian Hubungan -->
-                <div class="bg-rose-500 p-10 rounded-[3rem] text-white shadow-xl shadow-rose-200">
-                    <div class="flex items-center gap-4 mb-8">
-                        <div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-white shadow-sm font-black italic">09</div>
-                        <h4 class="text-2xl font-bold">Penilaian Hubungan Akhir</h4>
-                    </div>
-                    <div class="space-y-8">
-                        <div>
-                            <label class="text-xs font-black uppercase tracking-widest block mb-4 opacity-80">Skor Hubungan: <span id="val-overall_score" class="text-2xl">5</span>/10</label>
-                            <input type="range" min="1" max="10" oninput="setEval('overall_score', this.value)" class="w-full h-3 bg-white/30 rounded-lg appearance-none cursor-pointer accent-white">
+                <!-- 2. Kepercayaan -->
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border">
+                    <h4 class="text-xl font-bold mb-6 text-rose-500">2. Kepercayaan</h4>
+                    <div class="space-y-4">
+                        <label class="block text-sm font-bold text-slate-600">Skor Kepercayaan (1-10)</label>
+                        <div class="flex items-center gap-4">
+                            <input type="range" min="1" max="10" onchange="updateEvalData('trust_score', this.value)" id="eval-trust_score" class="flex-1 accent-rose-500">
+                            <span id="display-trust_score" class="font-bold text-lg">5</span>
                         </div>
-                        <textarea oninput="setEval('overall_reason', this.value)" placeholder="Alasan pemberian nilai tersebut..." class="w-full bg-white/10 border-2 border-white/20 focus:border-white/50 rounded-3xl p-6 text-sm outline-none h-32 placeholder:text-rose-200"></textarea>
+                        <textarea onchange="updateEvalData('trust_notes', this.value)" id="eval-trust_notes" placeholder="Ada yang mengganjal?" class="w-full bg-slate-50 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-rose-200 h-24"></textarea>
                     </div>
-                    <div class="mt-10 pt-10 border-t border-white/10 text-center">
-                        <p class="text-xs font-bold opacity-60">Semua isian tersimpan otomatis.</p>
-                        <button onclick="showTab('dashboard')" class="mt-6 bg-white text-rose-500 px-10 py-4 rounded-2xl font-black uppercase tracking-tighter text-sm shadow-xl hover:scale-105 active:scale-95 transition-all">Kembali ke Dashboard</button>
+                </div>
+
+                <!-- 3. Overall -->
+                <div class="bg-rose-50 p-8 rounded-[2.5rem] border border-rose-200">
+                    <h4 class="text-xl font-bold mb-6 text-rose-600">Bulan Ini Secara Keseluruhan</h4>
+                    <div class="space-y-4">
+                        <input type="range" min="1" max="10" onchange="updateEvalData('overall_score', this.value)" id="eval-overall_score" class="w-full accent-rose-500">
+                        <p class="text-center font-black text-2xl text-rose-600"><span id="display-overall_score">5</span>/10</p>
+                        <textarea onchange="updateEvalData('overall_reason', this.value)" id="eval-overall_reason" placeholder="Alasan memberi skor ini..." class="w-full bg-white p-4 rounded-2xl outline-none border-2 border-rose-200 h-32"></textarea>
                     </div>
+                </div>
+
+                <div class="text-center pb-10">
+                    <button onclick="showTab('dashboard')" class="bg-slate-800 text-white px-10 py-4 rounded-2xl font-bold shadow-xl">Selesai & Simpan</button>
                 </div>
             </div>
         </section>
 
         <!-- TAB: DISKUSI -->
         <section id="tab-diskusi" class="tab-content hidden space-y-8 animate-reveal">
-            <div class="bg-gradient-to-br from-slate-800 to-slate-900 text-white p-12 rounded-[3.5rem] shadow-2xl relative overflow-hidden">
-                <div class="absolute -right-20 -bottom-20 opacity-10 rotate-12">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 24 24" fill="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                </div>
-                <div class="max-w-2xl relative z-10">
-                    <span class="bg-amber-400 text-slate-900 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-[0.2em]">Deep Talk Session</span>
-                    <h3 class="text-4xl font-serif font-bold mt-6 mb-4 leading-tight">Pertanyaan Evaluasi untuk Dibahas Berdua</h3>
-                    <p class="text-slate-400 text-sm font-medium leading-relaxed">Penting bagi LDR untuk saling mendengar suara secara langsung. Bahas poin-poin ini di telepon atau video call ya!</p>
-                    <button onclick="getAIDateIdeas()" class="mt-8 bg-white text-slate-900 px-8 py-4 rounded-2xl font-bold text-sm hover:scale-105 transition-all shadow-lg flex items-center gap-2">✨ Minta Ide Kencan AI</button>
-                </div>
-            </div>
-
-            <div class="space-y-6" id="discussion-list">
-                <!-- Discussion Items -->
-            </div>
+             <div class="bg-slate-900 text-white p-12 rounded-[3.5rem] shadow-2xl">
+                 <h3 class="text-4xl font-serif font-bold mb-4">Deep Talk Session</h3>
+                 <p class="text-slate-400">Poin diskusi bersama pasangan. Isilah catatan bersama di bawah ini.</p>
+             </div>
+             <div id="discussion-list" class="space-y-6 max-w-3xl mx-auto"></div>
         </section>
 
         <!-- TAB: PROFIL -->
         <section id="tab-profil" class="tab-content hidden max-w-2xl mx-auto space-y-8 animate-reveal">
-            <div class="bg-white p-10 rounded-[3rem] shadow-xl border border-slate-100 text-center relative">
-                <div class="relative inline-block group cursor-pointer">
-                    <div id="profile-img-container" class="w-40 h-40 rounded-[2.5rem] bg-rose-50 border-8 border-white shadow-2xl overflow-hidden flex items-center justify-center text-rose-500 text-5xl font-black group-hover:rotate-3 transition-transform">?</div>
-                    <label class="absolute -bottom-2 -right-2 bg-slate-800 text-white w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer shadow-lg hover:scale-110 active:scale-90 transition-all">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                        <input type="file" id="profile-upload" class="hidden" accept="image/*" onchange="uploadProfilePhoto(this)">
+            <div class="bg-white p-10 rounded-[3rem] shadow-xl text-center">
+                <div class="relative w-40 h-40 mx-auto group">
+                    <div id="profile-img-container" class="w-full h-full rounded-[2.5rem] bg-rose-50 flex items-center justify-center text-rose-500 text-5xl font-black overflow-hidden border-4 border-white shadow-lg">?</div>
+                    <label class="absolute bottom-0 right-0 bg-slate-800 text-white p-3 rounded-2xl cursor-pointer shadow-xl">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        <input type="file" class="hidden" accept="image/*" onchange="uploadProfilePhoto(this)">
                     </label>
                 </div>
-                <div class="mt-10">
-                    <input type="text" id="profile-name-input" onchange="updateProfileName(this.value)" class="text-3xl font-serif font-bold text-slate-800 text-center border-b-2 border-transparent focus:border-rose-400 outline-none w-full bg-transparent px-4" placeholder="Namamu...">
-                    <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mt-4">Personal Profile Setting</p>
-                </div>
+                <input type="text" id="profile-name-input" onchange="updateProfileName(this.value)" class="text-3xl font-serif font-bold text-slate-800 text-center mt-8 w-full bg-transparent outline-none focus:border-b-2 border-rose-200">
+                <button onclick="logout()" class="mt-10 text-rose-400 font-bold uppercase text-xs tracking-widest hover:text-rose-600 transition-colors">Ganti Akun Pengguna</button>
             </div>
-
-            <div class="bg-rose-50 p-8 rounded-[2.5rem] border border-rose-100 flex items-center justify-between">
-                <div class="flex items-center gap-6">
-                    <div id="partner-img" class="w-16 h-16 rounded-2xl bg-white shadow-sm overflow-hidden flex items-center justify-center font-black text-rose-500">?</div>
-                    <div>
-                        <p id="partner-name" class="font-bold text-slate-800 text-xl">LDR Partner</p>
-                        <p class="text-[10px] font-black text-rose-400 uppercase tracking-widest mt-1">Connected in SYAVE</p>
-                    </div>
-                </div>
-                <div class="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center animate-pulse">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                </div>
-            </div>
-
-            <button onclick="logout()" class="w-full bg-slate-50 text-slate-400 font-bold py-5 rounded-[2rem] hover:bg-rose-50 hover:text-rose-500 transition-all border border-transparent hover:border-rose-100">Ganti Akun Pengguna</button>
         </section>
-
     </main>
 
-    <!-- Save Toast -->
     <div id="save-toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3 transform translate-y-32 opacity-0 transition-all duration-500 z-[200]">
-        <div class="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center text-white">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-        </div>
-        <span class="text-sm font-bold tracking-tight">Perubahan Tersimpan Otomatis</span>
+        <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+        <span class="text-sm font-bold">Cloud Synced!</span>
     </div>
 
-    <script>
-        // --- GEMINI API CONFIG ---
-        const apiKey = ""; 
-        
-        async function callGemini(prompt, systemPrompt = "Kamu adalah SYAVE AI, asisten hubungan romantis yang hangat, bijak, dan lucu untuk pasangan LDR. Jawab dalam Bahasa Indonesia yang santai tapi bermakna.") {
-            const MODEL = "gemini-2.5-flash-preview-09-2025";
-            const URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
-            const payload = {
-                contents: [{ parts: [{ text: prompt }] }],
-                systemInstruction: { parts: [{ text: systemPrompt }] }
-            };
-            const maxRetries = 5;
-            for (let i = 0; i < maxRetries; i++) {
-                try {
-                    const response = await fetch(URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    if (!response.ok) throw new Error('API Error');
-                    const result = await response.json();
-                    return result.candidates?.[0]?.content?.parts?.[0]?.text || "Maaf, AI sedang malu-malu. Coba lagi ya!";
-                } catch (error) {
-                    if (i === maxRetries - 1) return "Koneksi terputus. Pastikan internetmu stabil.";
-                    const delay = Math.pow(2, i) * 1000;
-                    await new Promise(res => setTimeout(res, delay));
-                }
-            }
-        }
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- DATA & STATE ---
-        let currentUserId = null;
-        let currentMonth = new Date().toISOString().slice(0, 7);
+        // Global Variables
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'syave-default';
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // State
+        window.currentUserId = null;
+        window.currentMonth = new Date().toISOString().slice(0, 7);
         let radarInstance = null;
+        let profiles = { wira: { name: 'Wira' }, bahja: { name: 'Bahja' } };
+        let currentEvalData = {};
+        let sharedData = {};
 
-        const defaultProfiles = {
-            wira: { name: 'Lalu Wira Sandi', photoUrl: '' },
-            bahja: { name: 'Bahjatunnisa', photoUrl: '' }
+        // Auth
+        const initAuth = async () => {
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                await signInAnonymously(auth);
+            }
         };
 
-        let profiles = JSON.parse(localStorage.getItem('syave_profiles_v2')) || defaultProfiles;
-        let evaluations = JSON.parse(localStorage.getItem('syave_evals_v2')) || {};
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('loading-screen').style.opacity = '0';
+                setTimeout(() => document.getElementById('loading-screen').style.display = 'none', 500);
+                setupListeners();
+            }
+        });
 
-        const discQuestions = [
-            "Apakah kamu masih bahagia menjalani LDR sama aku?",
-            "Apa yang paling kamu suka dari hubungan kita bulan ini?",
-            "Apa yang kurang dari aku bulan ini?",
-            "Apa yang bisa kita perbaiki bulan depan?",
-            "Apakah kamu merasa aku cukup hadir walaupun jauh?",
-            "Kapan kita mau merencanakan ketemu?",
-            "Apa yang harus kita pertahankan dari hubungan ini?"
-        ];
+        // Setup Firestore Listeners (Real-time)
+        function setupListeners() {
+            // Listen to Profiles
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'profiles'), (snapshot) => {
+                snapshot.forEach(doc => { profiles[doc.id] = doc.data(); });
+                updateUI();
+            });
 
-        // --- CORE LOGIC ---
-        function login(userId) {
-            currentUserId = userId;
-            document.getElementById('login-modal').classList.add('opacity-0', 'pointer-events-none');
-            setTimeout(() => document.getElementById('login-modal').style.display = 'none', 500);
+            // Listen to Monthly Evaluations
+            const monthEvalPath = collection(db, 'artifacts', appId, 'public', 'data', 'evaluations');
+            onSnapshot(monthEvalPath, (snapshot) => {
+                const allEvals = {};
+                snapshot.forEach(doc => { allEvals[doc.id] = doc.data(); });
+                window.allEvals = allEvals;
+                updateDashboardStats();
+            });
+
+            // Shared Data (Photos, TikTok)
+            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'shared_metadata'), (doc) => {
+                if(doc.exists()) {
+                    sharedData = doc.data();
+                    updateSharedUI();
+                }
+            });
+        }
+
+        // Functions for UI
+        window.login = (userId) => {
+            window.currentUserId = userId;
+            document.getElementById('login-modal').style.display = 'none';
             initDashboard();
             updateUI();
             createHearts();
+        };
+
+        window.logout = () => { location.reload(); };
+
+        window.showTab = (tabId) => {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('nav button').forEach(el => el.classList.remove('tab-active'));
+            document.getElementById('tab-' + tabId).classList.remove('hidden');
+            document.getElementById('nav-' + tabId).classList.add('tab-active');
+            if(tabId === 'evaluasi') syncFormFields();
+        };
+
+        // Update Data Functions
+        window.updateProfileName = async (name) => {
+            if(!window.currentUserId) return;
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'profiles', window.currentUserId);
+            await setDoc(docRef, { name }, { merge: true });
+            showToast();
+        };
+
+        window.updateEvalData = async (field, value) => {
+            if(!window.currentUserId) return;
+            const docId = `${window.currentMonth}_${window.currentUserId}`;
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'evaluations', docId);
+            const updateObj = { [field]: value, userId: window.currentUserId, month: window.currentMonth };
+            await setDoc(docRef, updateObj, { merge: true });
+            document.getElementById(`display-${field}`).innerText = value;
+            showToast();
+        };
+
+        window.updateSharedData = async (field, value) => {
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'shared_metadata');
+            await setDoc(docRef, { [field]: value }, { merge: true });
+            showToast();
+        };
+
+        window.uploadProfilePhoto = async (input) => {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'profiles', window.currentUserId);
+                    await setDoc(docRef, { photoUrl: e.target.result }, { merge: true });
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        };
+
+        window.uploadSharedPhoto = async (input) => {
+             if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'shared_metadata');
+                    await setDoc(docRef, { photoUrl: e.target.result }, { merge: true });
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        };
+
+        // UI Helpers
+        function updateUI() {
+            if(!window.currentUserId) return;
+            const me = profiles[window.currentUserId];
+            document.getElementById('profile-name-input').value = me?.name || '';
+            const avatar = document.getElementById('user-avatar');
+            const profCont = document.getElementById('profile-img-container');
+            
+            if(me?.photoUrl) {
+                avatar.innerHTML = `<img src="${me.photoUrl}" class="w-full h-full object-cover">`;
+                profCont.innerHTML = `<img src="${me.photoUrl}" class="w-full h-full object-cover">`;
+            } else {
+                avatar.innerText = (me?.name || '?').charAt(0);
+                profCont.innerText = (me?.name || '?').charAt(0);
+            }
+
+            document.getElementById('dash-name-wira').innerText = profiles.wira?.name || 'Wira';
+            document.getElementById('dash-name-bahja').innerText = profiles.bahja?.name || 'Bahja';
+            
+            if(profiles.wira?.photoUrl) document.getElementById('dash-avatar-wira').innerHTML = `<img src="${profiles.wira.photoUrl}" class="w-full h-full object-cover">`;
+            if(profiles.bahja?.photoUrl) document.getElementById('dash-avatar-bahja').innerHTML = `<img src="${profiles.bahja.photoUrl}" class="w-full h-full object-cover">`;
         }
 
-        function logout() {
-            currentUserId = null;
-            document.getElementById('login-modal').style.display = 'flex';
-            setTimeout(() => document.getElementById('login-modal').classList.remove('opacity-0', 'pointer-events-none'), 10);
+        function updateSharedUI() {
+            if(sharedData.photoUrl) {
+                document.getElementById('photo-preview').innerHTML = `<img src="${sharedData.photoUrl}" class="w-full h-full object-cover">`;
+            }
+            if(sharedData.tiktokUrl) {
+                document.getElementById('tiktok-input').value = sharedData.tiktokUrl;
+                document.getElementById('tiktok-container').classList.remove('hidden');
+                document.getElementById('tiktok-link').href = sharedData.tiktokUrl;
+            }
+        }
+
+        function updateDashboardStats() {
+            if(!window.allEvals) return;
+            const wDocId = `${window.currentMonth}_wira`;
+            const bDocId = `${window.currentMonth}_bahja`;
+            const wData = window.allEvals[wDocId] || {};
+            const bData = window.allEvals[bDocId] || {};
+
+            const wScore = parseFloat(wData.overall_score || 0);
+            const bScore = parseFloat(bData.overall_score || 0);
+            const avg = (wScore + bScore) / (wScore > 0 && bScore > 0 ? 2 : 1);
+            
+            document.getElementById('love-score').innerText = avg > 0 ? avg.toFixed(1) : "0.0";
+            
+            // Status badges
+            const updateBadge = (id, data) => {
+                const el = document.getElementById(id);
+                const isDone = Object.keys(data).length > 3;
+                el.innerText = isDone ? 'Selesai' : 'Pending';
+                el.className = `text-[10px] mt-2 inline-block px-3 py-1 rounded-full font-bold ${isDone ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`;
+            };
+            updateBadge('status-wira', wData);
+            updateBadge('status-bahja', bData);
+
+            initRadarChart(wData, bData);
+        }
+
+        function syncFormFields() {
+            const docId = `${window.currentMonth}_${window.currentUserId}`;
+            const data = window.allEvals?.[docId] || {};
+            ['comm_score', 'trust_score', 'overall_score'].forEach(key => {
+                const val = data[key] || 5;
+                document.getElementById(`eval-${key}`).value = val;
+                document.getElementById(`display-${key}`).innerText = val;
+            });
+            ['comm_notes', 'trust_notes', 'overall_reason'].forEach(key => {
+                document.getElementById(`eval-${key}`).value = data[key] || '';
+            });
+        }
+
+        function initRadarChart(wData, bData) {
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            const scoresW = [wData.comm_score || 0, wData.trust_score || 0, wData.overall_score || 0, 5, 5, 5];
+            const scoresB = [bData.comm_score || 0, bData.trust_score || 0, bData.overall_score || 0, 5, 5, 5];
+
+            if(radarInstance) radarInstance.destroy();
+            radarInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Comm', 'Trust', 'Overall', 'Quality', 'Effort', 'Feel'],
+                    datasets: [
+                        { label: 'Wira', data: scoresW, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)' },
+                        { label: 'Bahja', data: scoresB, borderColor: '#ec4899', backgroundColor: 'rgba(236, 72, 153, 0.1)' }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { r: { beginAtZero: true, max: 10 } } }
+            });
+        }
+
+        function showToast() {
+            const toast = document.getElementById('save-toast');
+            toast.classList.remove('translate-y-32', 'opacity-0');
+            setTimeout(() => toast.classList.add('translate-y-32', 'opacity-0'), 2000);
         }
 
         function createHearts() {
@@ -532,312 +519,30 @@
                 heart.innerHTML = '❤️';
                 heart.style.left = Math.random() * 100 + 'vw';
                 heart.style.fontSize = (Math.random() * 20 + 10) + 'px';
-                heart.style.animationDuration = (Math.random() * 3 + 4) + 's';
                 container.appendChild(heart);
                 setTimeout(() => heart.remove(), 6000);
-            }, 1000);
+            }, 1500);
         }
 
-        function initDashboard() {
+        window.initDashboard = () => {
             const selector = document.getElementById('month-selector');
             selector.innerHTML = '';
             for(let i=0; i<6; i++) {
-                const d = new Date();
-                d.setMonth(d.getMonth() - i);
+                const d = new Date(); d.setMonth(d.getMonth() - i);
                 const iso = d.toISOString().slice(0, 7);
-                const text = d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
                 const opt = document.createElement('option');
-                opt.value = iso; opt.text = text;
+                opt.value = iso; opt.text = d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
                 selector.appendChild(opt);
             }
-            selector.value = currentMonth;
-            initRadarChart();
-            renderDiscussion();
-        }
+        };
 
-        function changeMonth() {
-            currentMonth = document.getElementById('month-selector').value;
-            updateUI();
-            initRadarChart();
-            renderDiscussion();
-        }
+        window.changeMonth = () => {
+            window.currentMonth = document.getElementById('month-selector').value;
+            updateDashboardStats();
+        };
 
-        function showTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('nav button').forEach(el => el.classList.remove('tab-active'));
-            document.getElementById('tab-' + tabId).classList.remove('hidden');
-            document.getElementById('nav-' + tabId).classList.add('tab-active');
-            if(tabId === 'evaluasi') syncForm();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        initAuth();
 
-        function syncForm() {
-            const data = evaluations[currentMonth]?.[currentUserId] || {};
-            
-            // Sync ranges & text displays
-            ['comm_score', 'trust_score', 'overall_score'].forEach(key => {
-                const input = document.querySelector(`input[oninput*="${key}"]`);
-                if(input) input.value = data[key] || 5;
-                const disp = document.getElementById('val-' + key);
-                if(disp) disp.innerText = data[key] || 5;
-            });
-
-            // Sync all textareas
-            const textKeys = ['comm_good', 'comm_bad', 'qt_best', 'qt_next', 'trust_notes', 'conflict_desc', 'conflict_solve', 'conflict_status', 'feelings_notes', 'appreciation', 'self_notes', 'expectations', 'overall_reason'];
-            textKeys.forEach(key => {
-                const area = document.querySelector(`textarea[oninput*="${key}"]`);
-                if(area) area.value = data[key] || '';
-            });
-
-            // Sync button groups
-            const btnGroups = ['comm_freq', 'qt_freq', 'trust_overthinking', 'trust_update', 'self_menuntut', 'self_kabar'];
-            btnGroups.forEach(field => {
-                const val = data[field];
-                const container = document.getElementById(`group-${field}`);
-                if(container) {
-                    container.querySelectorAll('button').forEach(btn => {
-                        const activeClass = btn.classList.contains('option-btn-mini') ? ['bg-rose-500', 'text-white', 'border-rose-500'] : ['bg-rose-500', 'text-white', 'scale-105', 'shadow-md'];
-                        const isActive = btn.innerText === val;
-                        activeClass.forEach(cls => btn.classList.toggle(cls, isActive));
-                    });
-                }
-            });
-
-            // Sync feelings
-            const feelings = data.feelings || [];
-            document.querySelectorAll('.feeling-btn').forEach(btn => {
-                const isActive = feelings.includes(btn.innerText);
-                btn.classList.toggle('bg-purple-500', isActive);
-                btn.classList.toggle('text-white', isActive);
-                btn.classList.toggle('scale-105', isActive);
-            });
-        }
-
-        function setEval(field, val) {
-            if(!evaluations[currentMonth]) evaluations[currentMonth] = {};
-            if(!evaluations[currentMonth][currentUserId]) evaluations[currentMonth][currentUserId] = {};
-            evaluations[currentMonth][currentUserId][field] = val;
-            save();
-            const disp = document.getElementById('val-' + field);
-            if(disp) disp.innerText = val;
-            syncForm();
-        }
-
-        function toggleFeeling(feeling) {
-            if(!evaluations[currentMonth]) evaluations[currentMonth] = {};
-            if(!evaluations[currentMonth][currentUserId]) evaluations[currentMonth][currentUserId] = {};
-            let feelings = evaluations[currentMonth][currentUserId].feelings || [];
-            if(feelings.includes(feeling)) feelings = feelings.filter(f => f !== feeling);
-            else feelings.push(feeling);
-            evaluations[currentMonth][currentUserId].feelings = feelings;
-            save();
-            syncForm();
-        }
-
-        function save() {
-            localStorage.setItem('syave_evals_v2', JSON.stringify(evaluations));
-            const toast = document.getElementById('save-toast');
-            toast.classList.remove('translate-y-32', 'opacity-0');
-            setTimeout(() => toast.classList.add('translate-y-32', 'opacity-0'), 2000);
-            updateUI();
-            initRadarChart();
-        }
-
-        async function uploadProfilePhoto(input) {
-            if(input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.readAsDataURL(input.files[0]);
-                reader.onload = (e) => {
-                    profiles[currentUserId].photoUrl = e.target.result;
-                    localStorage.setItem('syave_profiles_v2', JSON.stringify(profiles));
-                    updateUI();
-                    save();
-                };
-            }
-        }
-
-        async function uploadSharedPhoto(input) {
-            if(input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.readAsDataURL(input.files[0]);
-                reader.onload = (e) => {
-                    if(!evaluations[currentMonth]) evaluations[currentMonth] = {};
-                    if(!evaluations[currentMonth].shared) evaluations[currentMonth].shared = {};
-                    evaluations[currentMonth].shared.photoUrl = e.target.result;
-                    save();
-                };
-            }
-        }
-
-        function updateTikTok() {
-            const url = document.getElementById('tiktok-input').value;
-            if(!evaluations[currentMonth]) evaluations[currentMonth] = {};
-            if(!evaluations[currentMonth].shared) evaluations[currentMonth].shared = {};
-            evaluations[currentMonth].shared.tiktokUrl = url;
-            save();
-        }
-
-        function updateProfileName(name) {
-            profiles[currentUserId].name = name;
-            localStorage.setItem('syave_profiles_v2', JSON.stringify(profiles));
-            updateUI();
-            save();
-        }
-
-        function updateUI() {
-            if(!currentUserId) return;
-            const me = profiles[currentUserId];
-            const partnerId = currentUserId === 'wira' ? 'bahja' : 'wira';
-            const partner = profiles[partnerId];
-
-            // Profile UI
-            document.getElementById('profile-name-input').value = me.name;
-            const avatar = document.getElementById('user-avatar');
-            const profCont = document.getElementById('profile-img-container');
-            if(me.photoUrl) {
-                avatar.innerHTML = `<img src="${me.photoUrl}" class="w-full h-full object-cover">`;
-                profCont.innerHTML = `<img src="${me.photoUrl}" class="w-full h-full object-cover">`;
-            } else {
-                avatar.innerText = me.name.charAt(0);
-                profCont.innerText = me.name.charAt(0);
-            }
-
-            // Partner Info
-            document.getElementById('partner-name').innerText = partner.name;
-            const partImg = document.getElementById('partner-img');
-            if(partner.photoUrl) partImg.innerHTML = `<img src="${partner.photoUrl}" class="w-full h-full object-cover">`;
-            else partImg.innerText = partner.name.charAt(0);
-
-            // Dashboard Sync
-            document.getElementById('dash-name-wira').innerText = profiles.wira.name;
-            document.getElementById('dash-name-bahja').innerText = profiles.bahja.name;
-            const avW = document.getElementById('dash-avatar-wira');
-            const avB = document.getElementById('dash-avatar-bahja');
-            if(profiles.wira.photoUrl) avW.innerHTML = `<img src="${profiles.wira.photoUrl}" class="w-full h-full object-cover">`;
-            if(profiles.bahja.photoUrl) avB.innerHTML = `<img src="${profiles.bahja.photoUrl}" class="w-full h-full object-cover">`;
-
-            const currentEval = evaluations[currentMonth] || {};
-            const wDone = Object.keys(currentEval.wira || {}).length > 10;
-            const bDone = Object.keys(currentEval.bahja || {}).length > 10;
-            updateStatusBadge('status-wira', wDone);
-            updateStatusBadge('status-bahja', bDone);
-
-            const wScore = Number(currentEval.wira?.overall_score || 0);
-            const bScore = Number(currentEval.bahja?.overall_score || 0);
-            const avg = (wScore + bScore) / (wScore > 0 && bScore > 0 ? 2 : 1);
-            document.getElementById('love-score').innerText = avg > 0 ? avg.toFixed(1) : "0.0";
-
-            const photoPrev = document.getElementById('photo-preview');
-            if(currentEval.shared?.photoUrl) {
-                photoPrev.innerHTML = `<img src="${currentEval.shared.photoUrl}" class="w-full h-full object-cover">`;
-            }
-
-            const ttInput = document.getElementById('tiktok-input');
-            const ttCont = document.getElementById('tiktok-link-container');
-            const ttUrl = currentEval.shared?.tiktokUrl;
-            ttInput.value = ttUrl || '';
-            if(ttUrl) {
-                ttCont.classList.remove('hidden');
-                document.getElementById('tiktok-btn').href = ttUrl;
-            } else ttCont.classList.add('hidden');
-        }
-
-        function updateStatusBadge(id, isDone) {
-            const el = document.getElementById(id);
-            el.innerText = isDone ? 'Selesai' : 'Pending';
-            el.className = `text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${isDone ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`;
-        }
-
-        function initRadarChart() {
-            const ctx = document.getElementById('radarChart').getContext('2d');
-            const ev = evaluations[currentMonth] || {};
-            
-            const labels = ['Comm', 'Trust', 'Perasaan', 'Self', 'Conflict', 'Overall'];
-            const wData = [ev.wira?.comm_score || 0, ev.wira?.trust_score || 0, (ev.wira?.feelings || []).length * 2, (ev.wira?.self_notes ? 8 : 0), (ev.wira?.conflict_desc ? 7 : 0), ev.wira?.overall_score || 0];
-            const bData = [ev.bahja?.comm_score || 0, ev.bahja?.trust_score || 0, (ev.bahja?.feelings || []).length * 2, (ev.bahja?.self_notes ? 8 : 0), (ev.bahja?.conflict_desc ? 7 : 0), ev.bahja?.overall_score || 0];
-
-            if(radarInstance) radarInstance.destroy();
-            radarInstance = new Chart(ctx, {
-                type: 'radar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        { label: 'Wira', data: wData, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderWidth: 3, pointRadius: 0 },
-                        { label: 'Bahja', data: bData, borderColor: '#ec4899', backgroundColor: 'rgba(236, 72, 153, 0.1)', borderWidth: 3, pointRadius: 0 }
-                    ]
-                },
-                options: { 
-                    responsive: true, maintainAspectRatio: false, 
-                    scales: { r: { beginAtZero: true, max: 10, ticks: { display: false }, grid: { color: 'rgba(0,0,0,0.05)' } } },
-                    plugins: { legend: { position: 'bottom', labels: { font: { size: 10, weight: 'bold' } } } }
-                }
-            });
-        }
-
-        // --- AI LOGIC ---
-        function openAIModal(title) {
-            document.getElementById('ai-modal').classList.remove('hidden');
-            document.getElementById('ai-title').innerText = title;
-            document.getElementById('ai-content').innerHTML = '';
-            document.getElementById('ai-content').classList.add('hidden');
-            document.getElementById('ai-loading').classList.remove('hidden');
-        }
-        function closeAIModal() { document.getElementById('ai-modal').classList.add('hidden'); }
-        function showAIResult(text) {
-            document.getElementById('ai-loading').classList.add('hidden');
-            const content = document.getElementById('ai-content');
-            content.classList.remove('hidden');
-            let html = text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-rose-600">$1</strong>').replace(/\n/g, '<br>');
-            content.innerHTML = html;
-        }
-
-        async function getAIAnalysis() {
-            openAIModal('Analisis Hubungan');
-            const ev = evaluations[currentMonth] || {};
-            const prompt = `Analisis data LDR bulan ini: Wira skor ${ev.wira?.overall_score}/10, Bahja skor ${ev.bahja?.overall_score}/10. Wira merasa: ${(ev.wira?.feelings || []).join(', ')}. Bahja merasa: ${(ev.bahja?.feelings || []).join(', ')}. Berikan ringkasan psikologis dan 3 saran lucu tapi bermakna.`;
-            const res = await callGemini(prompt);
-            showAIResult(res);
-        }
-
-        async function generateAILoveLetter() {
-            openAIModal('Surat Cinta AI');
-            const data = evaluations[currentMonth]?.[currentUserId] || {};
-            const prompt = `Buatkan surat cinta puitis dari ${profiles[currentUserId].name} untuk pasangannya. Konteks: Bulan ini ia merasa ${ (data.feelings || []).join(', ') } dan sangat berterima kasih karena: "${data.appreciation || 'selalu ada'}". Gunakan gaya bahasa anak muda yang estetik.`;
-            const res = await callGemini(prompt);
-            showAIResult(res);
-        }
-
-        async function getAIDateIdeas() {
-            openAIModal('Ide Kencan LDR');
-            const prompt = "Berikan 5 ide kencan virtual (LDR) yang unik dan kreatif yang bisa dilakukan lewat video call atau aplikasi HP di Indonesia.";
-            const res = await callGemini(prompt);
-            showAIResult(res);
-        }
-
-        function renderDiscussion() {
-            const list = document.getElementById('discussion-list');
-            list.innerHTML = '';
-            const shared = evaluations[currentMonth]?.shared_notes || {};
-            discQuestions.forEach((q, i) => {
-                const div = document.createElement('div');
-                div.className = "bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm animate-reveal";
-                div.style.animationDelay = (i * 0.1) + 's';
-                div.innerHTML = `
-                    <p class="text-sm font-black text-slate-800 mb-4 flex items-center gap-3"><span class="w-8 h-8 bg-slate-800 text-white rounded-lg flex items-center justify-center text-[10px]">${i+1}</span> ${q}</p>
-                    <textarea onblur="saveSharedNote(${i}, this.value)" placeholder="Tulis kesimpulan diskusi kalian..." class="w-full bg-slate-50/50 border-2 border-transparent focus:border-slate-200 rounded-2xl p-5 text-sm outline-none transition-all">${shared[i] || ''}</textarea>
-                `;
-                list.appendChild(div);
-            });
-        }
-
-        function saveSharedNote(idx, val) {
-            if(!evaluations[currentMonth]) evaluations[currentMonth] = {};
-            if(!evaluations[currentMonth].shared_notes) evaluations[currentMonth].shared_notes = {};
-            evaluations[currentMonth].shared_notes[idx] = val;
-            save();
-        }
-
-        window.onload = () => { showTab('dashboard'); };
     </script>
 </body>
 </html>
