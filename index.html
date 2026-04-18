@@ -56,7 +56,10 @@
 
     <div id="loading-screen" class="loading-overlay">
         <div class="w-16 h-16 border-4 border-rose-100 border-t-rose-500 rounded-full animate-spin mb-4"></div>
-        <p class="text-rose-500 font-bold animate-pulse">Menghubungkan ke Cloud...</p>
+        <p id="loading-text" class="text-rose-500 font-bold animate-pulse">Menghubungkan ke Cloud...</p>
+        <div id="error-config" class="hidden mt-4 p-4 bg-red-50 text-red-600 rounded-xl text-sm text-center max-w-xs">
+            Konfigurasi Firebase belum diatur. <br>Buka kode dan masukkan data Firebase Anda.
+        </div>
     </div>
 
     <div id="heart-container"></div>
@@ -117,7 +120,7 @@
                 </div>
             </div>
             <div class="flex items-center gap-3">
-                <div id="connection-status" class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                <div id="connection-status" class="w-2 h-2 rounded-full bg-slate-300 shadow-sm"></div>
                 <div id="user-avatar" onclick="showTab('profil')" class="w-12 h-12 rounded-2xl bg-rose-50 border-2 border-rose-200 flex items-center justify-center text-rose-500 font-black cursor-pointer hover:scale-110 transition-transform overflow-hidden shadow-sm">?</div>
             </div>
         </div>
@@ -291,64 +294,113 @@
         import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Global Variables
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'syave-default';
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        // State
-        window.currentUserId = null;
-        window.currentMonth = new Date().toISOString().slice(0, 7);
-        let radarInstance = null;
-        let profiles = { wira: { name: 'Wira' }, bahja: { name: 'Bahja' } };
-        let currentEvalData = {};
-        let sharedData = {};
-
-        // Auth
-        const initAuth = async () => {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
-                await signInAnonymously(auth);
-            }
-        };
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                document.getElementById('loading-screen').style.opacity = '0';
-                setTimeout(() => document.getElementById('loading-screen').style.display = 'none', 500);
-                setupListeners();
-            }
-        });
-
-        // Setup Firestore Listeners (Real-time)
-        function setupListeners() {
-            // Listen to Profiles
-            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'profiles'), (snapshot) => {
-                snapshot.forEach(doc => { profiles[doc.id] = doc.data(); });
-                updateUI();
-            });
-
-            // Listen to Monthly Evaluations
-            const monthEvalPath = collection(db, 'artifacts', appId, 'public', 'data', 'evaluations');
-            onSnapshot(monthEvalPath, (snapshot) => {
-                const allEvals = {};
-                snapshot.forEach(doc => { allEvals[doc.id] = doc.data(); });
-                window.allEvals = allEvals;
-                updateDashboardStats();
-            });
-
-            // Shared Data (Photos, TikTok)
-            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'shared_metadata'), (doc) => {
-                if(doc.exists()) {
-                    sharedData = doc.data();
-                    updateSharedUI();
-                }
-            });
+        let firebaseConfig;
+        try {
+            firebaseConfig = JSON.parse(__firebase_config);
+        } catch(e) {
+            firebaseConfig = {
+                apiKey: "",
+                authDomain: "",
+                projectId: "",
+                storageBucket: "",
+                messagingSenderId: "",
+                appId: ""
+            };
         }
 
-        // Functions for UI
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'syave-default';
+        
+        if (!firebaseConfig.apiKey && typeof __firebase_config === 'undefined') {
+            document.getElementById('loading-text').classList.add('hidden');
+            document.getElementById('error-config').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('loading-screen').style.opacity = '0';
+                setTimeout(() => document.getElementById('loading-screen').style.display = 'none', 500);
+            }, 3000);
+        } else {
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+
+            window.currentUserId = null;
+            window.currentMonth = new Date().toISOString().slice(0, 7);
+            let radarInstance = null;
+            let profiles = { wira: { name: 'Wira' }, bahja: { name: 'Bahja' } };
+            let sharedData = {};
+
+            const initAuth = async () => {
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch(e) {
+                    console.error("Auth failed:", e);
+                }
+            };
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    document.getElementById('loading-screen').style.opacity = '0';
+                    setTimeout(() => document.getElementById('loading-screen').style.display = 'none', 500);
+                    document.getElementById('connection-status').classList.remove('bg-slate-300');
+                    document.getElementById('connection-status').classList.add('bg-emerald-500', 'shadow-[0_0_8px_rgba(16,185,129,0.5)]');
+                    setupListeners(db, appId);
+                }
+            });
+
+            window.updateProfileName = async (name) => {
+                if(!window.currentUserId) return;
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'profiles', window.currentUserId);
+                await setDoc(docRef, { name }, { merge: true });
+                showToast();
+            };
+
+            window.updateEvalData = async (field, value) => {
+                if(!window.currentUserId) return;
+                const docId = `${window.currentMonth}_${window.currentUserId}`;
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'evaluations', docId);
+                const updateObj = { [field]: value, userId: window.currentUserId, month: window.currentMonth };
+                await setDoc(docRef, updateObj, { merge: true });
+                const disp = document.getElementById(`display-${field}`);
+                if(disp) disp.innerText = value;
+                showToast();
+            };
+
+            window.updateSharedData = async (field, value) => {
+                // FIXED: Jalur dokumen Firestore harus memiliki jumlah segmen yang genap
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'shared_metadata', 'main');
+                await setDoc(docRef, { [field]: value }, { merge: true });
+                showToast();
+            };
+
+            window.uploadProfilePhoto = async (input) => {
+                if (input.files && input.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'profiles', window.currentUserId);
+                        await setDoc(docRef, { photoUrl: e.target.result }, { merge: true });
+                    };
+                    reader.readAsDataURL(input.files[0]);
+                }
+            };
+
+            window.uploadSharedPhoto = async (input) => {
+                if (input.files && input.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        // FIXED: Jalur dokumen Firestore harus memiliki jumlah segmen yang genap
+                        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'shared_metadata', 'main');
+                        await setDoc(docRef, { photoUrl: e.target.result }, { merge: true });
+                    };
+                    reader.readAsDataURL(input.files[0]);
+                }
+            };
+
+            initAuth();
+        }
+
         window.login = (userId) => {
             window.currentUserId = userId;
             document.getElementById('login-modal').style.display = 'none';
@@ -367,83 +419,70 @@
             if(tabId === 'evaluasi') syncFormFields();
         };
 
-        // Update Data Functions
-        window.updateProfileName = async (name) => {
-            if(!window.currentUserId) return;
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'profiles', window.currentUserId);
-            await setDoc(docRef, { name }, { merge: true });
-            showToast();
-        };
+        function setupListeners(db, appId) {
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'profiles'), (snapshot) => {
+                let profiles = { wira: { name: 'Wira' }, bahja: { name: 'Bahja' } };
+                snapshot.forEach(doc => { profiles[doc.id] = doc.data(); });
+                window.profiles = profiles;
+                updateUI();
+            });
 
-        window.updateEvalData = async (field, value) => {
-            if(!window.currentUserId) return;
-            const docId = `${window.currentMonth}_${window.currentUserId}`;
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'evaluations', docId);
-            const updateObj = { [field]: value, userId: window.currentUserId, month: window.currentMonth };
-            await setDoc(docRef, updateObj, { merge: true });
-            document.getElementById(`display-${field}`).innerText = value;
-            showToast();
-        };
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'evaluations'), (snapshot) => {
+                const allEvals = {};
+                snapshot.forEach(doc => { allEvals[doc.id] = doc.data(); });
+                window.allEvals = allEvals;
+                updateDashboardStats();
+            });
 
-        window.updateSharedData = async (field, value) => {
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'shared_metadata');
-            await setDoc(docRef, { [field]: value }, { merge: true });
-            showToast();
-        };
+            // FIXED: Jalur dokumen Firestore harus memiliki jumlah segmen yang genap
+            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'shared_metadata', 'main'), (doc) => {
+                if(doc.exists()) {
+                    window.sharedData = doc.data();
+                    updateSharedUI();
+                }
+            });
+        }
 
-        window.uploadProfilePhoto = async (input) => {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = async (e) => {
-                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'profiles', window.currentUserId);
-                    await setDoc(docRef, { photoUrl: e.target.result }, { merge: true });
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
-        };
-
-        window.uploadSharedPhoto = async (input) => {
-             if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = async (e) => {
-                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'shared_metadata');
-                    await setDoc(docRef, { photoUrl: e.target.result }, { merge: true });
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
-        };
-
-        // UI Helpers
         function updateUI() {
-            if(!window.currentUserId) return;
-            const me = profiles[window.currentUserId];
-            document.getElementById('profile-name-input').value = me?.name || '';
+            if(!window.currentUserId || !window.profiles) return;
+            const me = window.profiles[window.currentUserId];
+            const nameInput = document.getElementById('profile-name-input');
+            if(nameInput) nameInput.value = me?.name || '';
             const avatar = document.getElementById('user-avatar');
             const profCont = document.getElementById('profile-img-container');
             
             if(me?.photoUrl) {
-                avatar.innerHTML = `<img src="${me.photoUrl}" class="w-full h-full object-cover">`;
-                profCont.innerHTML = `<img src="${me.photoUrl}" class="w-full h-full object-cover">`;
+                if(avatar) avatar.innerHTML = `<img src="${me.photoUrl}" class="w-full h-full object-cover">`;
+                if(profCont) profCont.innerHTML = `<img src="${me.photoUrl}" class="w-full h-full object-cover">`;
             } else {
-                avatar.innerText = (me?.name || '?').charAt(0);
-                profCont.innerText = (me?.name || '?').charAt(0);
+                if(avatar) avatar.innerText = (me?.name || '?').charAt(0);
+                if(profCont) profCont.innerText = (me?.name || '?').charAt(0);
             }
 
-            document.getElementById('dash-name-wira').innerText = profiles.wira?.name || 'Wira';
-            document.getElementById('dash-name-bahja').innerText = profiles.bahja?.name || 'Bahja';
+            const wName = document.getElementById('dash-name-wira');
+            const bName = document.getElementById('dash-name-bahja');
+            if(wName) wName.innerText = window.profiles.wira?.name || 'Wira';
+            if(bName) bName.innerText = window.profiles.bahja?.name || 'Bahja';
             
-            if(profiles.wira?.photoUrl) document.getElementById('dash-avatar-wira').innerHTML = `<img src="${profiles.wira.photoUrl}" class="w-full h-full object-cover">`;
-            if(profiles.bahja?.photoUrl) document.getElementById('dash-avatar-bahja').innerHTML = `<img src="${profiles.bahja.photoUrl}" class="w-full h-full object-cover">`;
+            const wAv = document.getElementById('dash-avatar-wira');
+            const bAv = document.getElementById('dash-avatar-bahja');
+            if(window.profiles.wira?.photoUrl && wAv) wAv.innerHTML = `<img src="${window.profiles.wira.photoUrl}" class="w-full h-full object-cover">`;
+            if(window.profiles.bahja?.photoUrl && bAv) bAv.innerHTML = `<img src="${window.profiles.bahja.photoUrl}" class="w-full h-full object-cover">`;
         }
 
         function updateSharedUI() {
-            if(sharedData.photoUrl) {
-                document.getElementById('photo-preview').innerHTML = `<img src="${sharedData.photoUrl}" class="w-full h-full object-cover">`;
+            const data = window.sharedData || {};
+            const photoPrev = document.getElementById('photo-preview');
+            if(data.photoUrl && photoPrev) {
+                photoPrev.innerHTML = `<img src="${data.photoUrl}" class="w-full h-full object-cover">`;
             }
-            if(sharedData.tiktokUrl) {
-                document.getElementById('tiktok-input').value = sharedData.tiktokUrl;
-                document.getElementById('tiktok-container').classList.remove('hidden');
-                document.getElementById('tiktok-link').href = sharedData.tiktokUrl;
+            const ttInput = document.getElementById('tiktok-input');
+            const ttCont = document.getElementById('tiktok-container');
+            const ttLink = document.getElementById('tiktok-link');
+            if(data.tiktokUrl && ttInput) {
+                ttInput.value = data.tiktokUrl;
+                if(ttCont) ttCont.classList.remove('hidden');
+                if(ttLink) ttLink.href = data.tiktokUrl;
             }
         }
 
@@ -458,11 +497,12 @@
             const bScore = parseFloat(bData.overall_score || 0);
             const avg = (wScore + bScore) / (wScore > 0 && bScore > 0 ? 2 : 1);
             
-            document.getElementById('love-score').innerText = avg > 0 ? avg.toFixed(1) : "0.0";
+            const scoreEl = document.getElementById('love-score');
+            if(scoreEl) scoreEl.innerText = avg > 0 ? avg.toFixed(1) : "0.0";
             
-            // Status badges
             const updateBadge = (id, data) => {
                 const el = document.getElementById(id);
+                if(!el) return;
                 const isDone = Object.keys(data).length > 3;
                 el.innerText = isDone ? 'Selesai' : 'Pending';
                 el.className = `text-[10px] mt-2 inline-block px-3 py-1 rounded-full font-bold ${isDone ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`;
@@ -473,21 +513,11 @@
             initRadarChart(wData, bData);
         }
 
-        function syncFormFields() {
-            const docId = `${window.currentMonth}_${window.currentUserId}`;
-            const data = window.allEvals?.[docId] || {};
-            ['comm_score', 'trust_score', 'overall_score'].forEach(key => {
-                const val = data[key] || 5;
-                document.getElementById(`eval-${key}`).value = val;
-                document.getElementById(`display-${key}`).innerText = val;
-            });
-            ['comm_notes', 'trust_notes', 'overall_reason'].forEach(key => {
-                document.getElementById(`eval-${key}`).value = data[key] || '';
-            });
-        }
-
+        let radarInstance = null;
         function initRadarChart(wData, bData) {
-            const ctx = document.getElementById('radarChart').getContext('2d');
+            const canvas = document.getElementById('radarChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
             const scoresW = [wData.comm_score || 0, wData.trust_score || 0, wData.overall_score || 0, 5, 5, 5];
             const scoresB = [bData.comm_score || 0, bData.trust_score || 0, bData.overall_score || 0, 5, 5, 5];
 
@@ -505,14 +535,33 @@
             });
         }
 
+        function syncFormFields() {
+            const docId = `${window.currentMonth}_${window.currentUserId}`;
+            const data = window.allEvals?.[docId] || {};
+            ['comm_score', 'trust_score', 'overall_score'].forEach(key => {
+                const val = data[key] || 5;
+                const el = document.getElementById(`eval-${key}`);
+                const disp = document.getElementById(`display-${key}`);
+                if(el) el.value = val;
+                if(disp) disp.innerText = val;
+            });
+            ['comm_notes', 'trust_notes', 'overall_reason'].forEach(key => {
+                const el = document.getElementById(`eval-${key}`);
+                if(el) el.value = data[key] || '';
+            });
+        }
+
         function showToast() {
             const toast = document.getElementById('save-toast');
-            toast.classList.remove('translate-y-32', 'opacity-0');
-            setTimeout(() => toast.classList.add('translate-y-32', 'opacity-0'), 2000);
+            if(toast) {
+                toast.classList.remove('translate-y-32', 'opacity-0');
+                setTimeout(() => toast.classList.add('translate-y-32', 'opacity-0'), 2000);
+            }
         }
 
         function createHearts() {
             const container = document.getElementById('heart-container');
+            if(!container) return;
             setInterval(() => {
                 const heart = document.createElement('div');
                 heart.className = 'heart-particle';
@@ -526,6 +575,7 @@
 
         window.initDashboard = () => {
             const selector = document.getElementById('month-selector');
+            if(!selector) return;
             selector.innerHTML = '';
             for(let i=0; i<6; i++) {
                 const d = new Date(); d.setMonth(d.getMonth() - i);
@@ -537,11 +587,12 @@
         };
 
         window.changeMonth = () => {
-            window.currentMonth = document.getElementById('month-selector').value;
-            updateDashboardStats();
+            const sel = document.getElementById('month-selector');
+            if(sel) {
+                window.currentMonth = sel.value;
+                updateDashboardStats();
+            }
         };
-
-        initAuth();
 
     </script>
 </body>
