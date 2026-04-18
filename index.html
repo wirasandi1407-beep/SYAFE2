@@ -50,6 +50,26 @@
             justify-content: center;
             transition: opacity 0.5s ease;
         }
+
+        .option-btn-active {
+            background-color: #f43f5e !important;
+            color: white !important;
+            transform: scale(1.05);
+        }
+
+        .upload-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #fff;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="antialiased min-h-screen pb-20">
@@ -58,7 +78,7 @@
         <div class="w-16 h-16 border-4 border-rose-100 border-t-rose-500 rounded-full animate-spin mb-4"></div>
         <p id="loading-text" class="text-rose-500 font-bold animate-pulse">Menghubungkan ke Cloud...</p>
         <div id="error-config" class="hidden mt-4 p-4 bg-red-50 text-red-600 rounded-xl text-sm text-center max-w-xs">
-            Konfigurasi Firebase belum diatur atau salah. <br>Harap periksa pengaturan Firebase Anda di dalam kode.
+            Konfigurasi Firebase belum diatur. Harap isi API Key.
         </div>
     </div>
 
@@ -84,7 +104,6 @@
         </div>
     </div>
 
-    <!-- Header -->
     <header class="bg-white/80 backdrop-blur-md shadow-sm border-b border-rose-100 sticky top-0 z-40">
         <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
             <div class="flex items-center gap-4">
@@ -118,7 +137,7 @@
                         <span class="bg-rose-100 text-rose-600 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">Monthly Summary</span>
                         <h3 class="text-4xl font-serif font-bold text-slate-800 mt-4 mb-4">Bagaimana kabar kita bulan ini?</h3>
                         <div class="flex flex-wrap gap-3 mt-6">
-                            <select id="month-selector" onchange="changeMonth()" class="bg-white border-2 border-rose-50 text-rose-500 font-bold rounded-2xl px-6 py-3 outline-none cursor-pointer text-sm"></select>
+                            <select id="month-selector" onchange="changeMonth()" class="bg-white border-2 border-rose-50 text-rose-500 font-bold rounded-2xl px-6 py-3 outline-none cursor-pointer text-sm shadow-sm"></select>
                         </div>
                     </div>
                     <div class="w-48 h-48 bg-white rounded-full flex flex-col items-center justify-center shadow-inner border-8 border-rose-50 z-10">
@@ -136,7 +155,7 @@
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div id="card-wira" class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-center gap-6">
-                    <div id="dash-avatar-wira" class="w-20 h-20 rounded-[1.5rem] bg-blue-50 text-blue-500 flex items-center justify-center text-2xl font-black overflow-hidden">W</div>
+                    <div id="dash-avatar-wira" class="w-20 h-20 rounded-[1.5rem] bg-blue-50 text-blue-500 flex items-center justify-center text-2xl font-black overflow-hidden relative shadow-inner">W</div>
                     <div>
                         <p class="text-[10px] font-black text-blue-400 uppercase tracking-widest">User Wira</p>
                         <h4 id="dash-name-wira" class="text-xl font-bold text-slate-800">Lalu Wira Sandi</h4>
@@ -144,7 +163,7 @@
                     </div>
                 </div>
                 <div id="card-bahja" class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-center gap-6">
-                    <div id="dash-avatar-bahja" class="w-20 h-20 rounded-[1.5rem] bg-pink-50 text-pink-500 flex items-center justify-center text-2xl font-black overflow-hidden">B</div>
+                    <div id="dash-avatar-bahja" class="w-20 h-20 rounded-[1.5rem] bg-pink-50 text-pink-500 flex items-center justify-center text-2xl font-black overflow-hidden relative shadow-inner">B</div>
                     <div>
                         <p class="text-[10px] font-black text-pink-400 uppercase tracking-widest">User Bahja</p>
                         <h4 id="dash-name-bahja" class="text-xl font-bold text-slate-800">Bahjatunnisa</h4>
@@ -157,13 +176,16 @@
                 <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-rose-50 overflow-hidden relative group">
                     <div class="flex justify-between items-center mb-6">
                         <h4 class="font-bold text-slate-800 flex items-center gap-3">📸 Moment of the Month</h4>
-                        <label class="text-[10px] font-black text-rose-500 uppercase cursor-pointer hover:underline">
-                            Upload Baru
-                            <input type="file" class="hidden" accept="image/*" onchange="uploadSharedPhoto(this)">
+                        <label class="text-[10px] font-black text-rose-500 uppercase cursor-pointer hover:underline flex items-center gap-2">
+                            <span id="shared-photo-label">Upload Baru</span>
+                            <input type="file" class="hidden" accept="image/*" onchange="handleSharedPhoto(this)">
                         </label>
                     </div>
-                    <div id="photo-preview" class="w-full aspect-video bg-rose-50/50 rounded-3xl flex flex-col items-center justify-center border-2 border-dashed border-rose-100 overflow-hidden">
+                    <div id="photo-preview" class="w-full aspect-video bg-rose-50/50 rounded-3xl flex flex-col items-center justify-center border-2 border-dashed border-rose-100 overflow-hidden relative">
                         <span class="text-xs font-bold text-rose-300">Belum ada foto</span>
+                        <div id="shared-upload-spinner" class="hidden absolute inset-0 bg-black/20 flex items-center justify-center">
+                            <div class="upload-spinner"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -172,7 +194,7 @@
                     <div class="space-y-4">
                         <input type="text" id="tiktok-input" onchange="updateSharedData('tiktokUrl', this.value)" placeholder="Tempel link TikTok di sini..." class="w-full bg-slate-50 border-2 border-transparent focus:border-purple-200 rounded-2xl p-5 text-sm outline-none transition-all">
                         <div id="tiktok-container" class="hidden">
-                            <a href="#" id="tiktok-link" target="_blank" class="w-full bg-purple-600 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2">Tonton TikTok</a>
+                            <a href="#" id="tiktok-link" target="_blank" class="w-full bg-purple-600 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-purple-700 transition-colors">Tonton TikTok</a>
                         </div>
                     </div>
                 </div>
@@ -183,73 +205,169 @@
         <section id="tab-evaluasi" class="tab-content hidden space-y-10 animate-reveal">
             <div class="bg-rose-500 p-10 rounded-[3rem] text-white shadow-xl flex flex-col md:flex-row justify-between items-center gap-6">
                 <div>
-                    <h3 class="text-3xl font-serif font-bold">LDR Evaluation Form</h3>
-                    <p class="opacity-80">Data tersinkronisasi otomatis ke awan.</p>
+                    <h3 class="text-3xl font-serif font-bold">Evaluasi LDR Bulanan</h3>
+                    <p class="opacity-80">Refleksi mendalam untuk hubungan kita.</p>
                 </div>
             </div>
 
             <div class="space-y-8 max-w-3xl mx-auto">
-                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border">
-                    <h4 class="text-xl font-bold mb-6 text-rose-500">1. Komunikasi</h4>
-                    <div class="space-y-4">
-                        <label class="block text-sm font-bold text-slate-600">Skor Komunikasi (1-10)</label>
-                        <div class="flex items-center gap-4">
-                            <input type="range" min="1" max="10" onchange="updateEvalData('comm_score', this.value)" id="eval-comm_score" class="flex-1 accent-rose-500">
-                            <span id="display-comm_score" class="font-bold text-lg">5</span>
+                <!-- 1. Komunikasi -->
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+                    <h4 class="text-xl font-bold mb-6 text-rose-500 flex items-center gap-3"><span class="w-10 h-10 bg-rose-100 rounded-xl flex items-center justify-center text-rose-500 font-bold">1</span> Komunikasi</h4>
+                    <div class="space-y-6">
+                        <div>
+                            <p class="text-sm font-bold text-slate-600 mb-3">Seberapa sering kita komunikasi bulan ini?</p>
+                            <div class="flex flex-wrap gap-2" id="group-comm_freq">
+                                <button onclick="updateEvalData('comm_freq', 'Sangat sering')" class="option-btn bg-slate-50 px-4 py-2 rounded-xl text-xs font-bold border transition-all">Sangat sering</button>
+                                <button onclick="updateEvalData('comm_freq', 'Cukup sering')" class="option-btn bg-slate-50 px-4 py-2 rounded-xl text-xs font-bold border transition-all">Cukup sering</button>
+                                <button onclick="updateEvalData('comm_freq', 'Jarang')" class="option-btn bg-slate-50 px-4 py-2 rounded-xl text-xs font-bold border transition-all">Jarang</button>
+                                <button onclick="updateEvalData('comm_freq', 'Sangat jarang')" class="option-btn bg-slate-50 px-4 py-2 rounded-xl text-xs font-bold border transition-all">Sangat jarang</button>
+                            </div>
                         </div>
-                        <textarea onchange="updateEvalData('comm_notes', this.value)" id="eval-comm_notes" placeholder="Apa yang bisa ditingkatkan?" class="w-full bg-slate-50 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-rose-200 h-24"></textarea>
-                    </div>
-                </div>
-
-                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border">
-                    <h4 class="text-xl font-bold mb-6 text-rose-500">2. Kepercayaan</h4>
-                    <div class="space-y-4">
-                        <label class="block text-sm font-bold text-slate-600">Skor Kepercayaan (1-10)</label>
-                        <div class="flex items-center gap-4">
-                            <input type="range" min="1" max="10" onchange="updateEvalData('trust_score', this.value)" id="eval-trust_score" class="flex-1 accent-rose-500">
-                            <span id="display-trust_score" class="font-bold text-lg">5</span>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <textarea onchange="updateEvalData('comm_good', this.value)" id="eval-comm_good" placeholder="Yang sudah baik dari komunikasi kita..." class="w-full bg-slate-50 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-rose-200 h-24 text-sm"></textarea>
+                            <textarea onchange="updateEvalData('comm_bad', this.value)" id="eval-comm_bad" placeholder="Yang perlu diperbaiki..." class="w-full bg-slate-50 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-rose-200 h-24 text-sm"></textarea>
                         </div>
-                        <textarea onchange="updateEvalData('trust_notes', this.value)" id="eval-trust_notes" placeholder="Ada yang mengganjal?" class="w-full bg-slate-50 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-rose-200 h-24"></textarea>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-2">Nilai Komunikasi (1-10): <span id="display-comm_score" class="text-rose-500 font-black">5</span></label>
+                            <input type="range" min="1" max="10" oninput="document.getElementById('display-comm_score').innerText = this.value" onchange="updateEvalData('comm_score', this.value)" id="eval-comm_score" class="w-full accent-rose-500">
+                        </div>
                     </div>
                 </div>
 
-                <div class="bg-rose-50 p-8 rounded-[2.5rem] border border-rose-200">
-                    <h4 class="text-xl font-bold mb-6 text-rose-600">Bulan Ini Secara Keseluruhan</h4>
+                <!-- 2. Quality Time -->
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+                    <h4 class="text-xl font-bold mb-6 text-rose-500 flex items-center gap-3"><span class="w-10 h-10 bg-rose-100 rounded-xl flex items-center justify-center text-rose-500 font-bold">2</span> Quality Time LDR</h4>
+                    <div class="space-y-6">
+                        <div>
+                            <p class="text-sm font-bold text-slate-600 mb-3">Apakah kita punya quality time bulan ini?</p>
+                            <div class="flex flex-wrap gap-2" id="group-qt_freq">
+                                <button onclick="updateEvalData('qt_freq', 'Banyak')" class="option-btn bg-slate-50 px-4 py-2 rounded-xl text-xs font-bold border transition-all">Banyak</button>
+                                <button onclick="updateEvalData('qt_freq', 'Cukup')" class="option-btn bg-slate-50 px-4 py-2 rounded-xl text-xs font-bold border transition-all">Cukup</button>
+                                <button onclick="updateEvalData('qt_freq', 'Sedikit')" class="option-btn bg-slate-50 px-4 py-2 rounded-xl text-xs font-bold border transition-all">Sedikit</button>
+                                <button onclick="updateEvalData('qt_freq', 'Tidak ada')" class="option-btn bg-slate-50 px-4 py-2 rounded-xl text-xs font-bold border transition-all">Tidak ada</button>
+                            </div>
+                        </div>
+                        <textarea onchange="updateEvalData('qt_best', this.value)" id="eval-qt_best" placeholder="Quality time paling berkesan bulan ini..." class="w-full bg-slate-50 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-rose-200 h-24 text-sm"></textarea>
+                        <textarea onchange="updateEvalData('qt_next', this.value)" id="eval-qt_next" placeholder="Yang ingin dilakukan bulan depan..." class="w-full bg-slate-50 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-rose-200 h-24 text-sm"></textarea>
+                    </div>
+                </div>
+
+                <!-- 3. Kepercayaan -->
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+                    <h4 class="text-xl font-bold mb-6 text-rose-500 flex items-center gap-3"><span class="w-10 h-10 bg-rose-100 rounded-xl flex items-center justify-center text-rose-500 font-bold">3</span> Kepercayaan</h4>
+                    <div class="space-y-6">
+                        <div class="space-y-3">
+                            <p class="text-sm font-bold text-slate-600">Refleksi Bulan Ini:</p>
+                            <ul class="text-xs text-slate-500 space-y-1 list-disc ml-4">
+                                <li>Apakah ada rasa curiga / overthinking?</li>
+                                <li>Apakah pasangan memberi kabar dengan baik?</li>
+                                <li>Apakah kamu merasa dipercaya?</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-2">Nilai Kepercayaan (1-10): <span id="display-trust_score" class="text-rose-500 font-black">5</span></label>
+                            <input type="range" min="1" max="10" oninput="document.getElementById('display-trust_score').innerText = this.value" onchange="updateEvalData('trust_score', this.value)" id="eval-trust_score" class="w-full accent-rose-500">
+                        </div>
+                        <textarea onchange="updateEvalData('trust_notes', this.value)" id="eval-trust_notes" placeholder="Penjelasan..." class="w-full bg-slate-50 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-rose-200 h-24 text-sm"></textarea>
+                    </div>
+                </div>
+
+                <!-- 4. Masalah -->
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+                    <h4 class="text-xl font-bold mb-6 text-rose-500 flex items-center gap-3"><span class="w-10 h-10 bg-rose-100 rounded-xl flex items-center justify-center text-rose-500 font-bold">4</span> Masalah / Konflik</h4>
                     <div class="space-y-4">
-                        <input type="range" min="1" max="10" onchange="updateEvalData('overall_score', this.value)" id="eval-overall_score" class="w-full accent-rose-500">
-                        <p class="text-center font-black text-2xl text-rose-600"><span id="display-overall_score">5</span>/10</p>
-                        <textarea onchange="updateEvalData('overall_reason', this.value)" id="eval-overall_reason" placeholder="Alasan memberi skor ini..." class="w-full bg-white p-4 rounded-2xl outline-none border-2 border-rose-200 h-32"></textarea>
+                        <textarea onchange="updateEvalData('conflict_desc', this.value)" id="eval-conflict_desc" placeholder="Tuliskan masalah yang terjadi bulan ini..." class="w-full bg-slate-50 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-rose-200 h-20 text-sm"></textarea>
+                        <textarea onchange="updateEvalData('conflict_solve', this.value)" id="eval-conflict_solve" placeholder="Bagaimana cara kita menyelesaikannya?" class="w-full bg-slate-50 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-rose-200 h-20 text-sm"></textarea>
+                        <textarea onchange="updateEvalData('conflict_status', this.value)" id="eval-conflict_status" placeholder="Apakah masalahnya sudah selesai atau masih mengganjal?" class="w-full bg-slate-50 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-rose-200 h-20 text-sm"></textarea>
                     </div>
                 </div>
 
-                <div class="text-center pb-10">
-                    <button onclick="showTab('dashboard')" class="bg-slate-800 text-white px-10 py-4 rounded-2xl font-bold shadow-xl">Selesai & Simpan</button>
+                <!-- 5. Perasaan -->
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+                    <h4 class="text-xl font-bold mb-6 text-rose-500 flex items-center gap-3"><span class="w-10 h-10 bg-rose-100 rounded-xl flex items-center justify-center text-rose-500 font-bold">5</span> Perasaan dalam Hubungan</h4>
+                    <div class="space-y-6">
+                        <div>
+                            <p class="text-sm font-bold text-slate-600 mb-3">Bulan ini aku merasa:</p>
+                            <div class="flex flex-wrap gap-2" id="group-feeling">
+                                <button onclick="updateEvalData('feeling', 'Bahagia')" class="option-btn bg-slate-50 px-4 py-2 rounded-xl text-xs font-bold border transition-all">Bahagia</button>
+                                <button onclick="updateEvalData('feeling', 'Biasa saja')" class="option-btn bg-slate-50 px-4 py-2 rounded-xl text-xs font-bold border transition-all">Biasa saja</button>
+                                <button onclick="updateEvalData('feeling', 'Sedih')" class="option-btn bg-slate-50 px-4 py-2 rounded-xl text-xs font-bold border transition-all">Sedih</button>
+                                <button onclick="updateEvalData('feeling', 'Capek')" class="option-btn bg-slate-50 px-4 py-2 rounded-xl text-xs font-bold border transition-all">Capek</button>
+                                <button onclick="updateEvalData('feeling', 'Kesepian')" class="option-btn bg-slate-50 px-4 py-2 rounded-xl text-xs font-bold border transition-all">Kesepian</button>
+                                <button onclick="updateEvalData('feeling', 'Dicintai')" class="option-btn bg-slate-50 px-4 py-2 rounded-xl text-xs font-bold border transition-all">Dicintai</button>
+                                <button onclick="updateEvalData('feeling', 'Tidak diperhatikan')" class="option-btn bg-slate-50 px-4 py-2 rounded-xl text-xs font-bold border transition-all">Tidak diperhatikan</button>
+                            </div>
+                        </div>
+                        <textarea onchange="updateEvalData('feeling_notes', this.value)" id="eval-feeling_notes" placeholder="Ceritakan perasaanmu lebih dalam..." class="w-full bg-slate-50 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-rose-200 h-24 text-sm"></textarea>
+                    </div>
+                </div>
+
+                <!-- 6. Apresiasi -->
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+                    <h4 class="text-xl font-bold mb-6 text-rose-500 flex items-center gap-3"><span class="w-10 h-10 bg-rose-100 rounded-xl flex items-center justify-center text-rose-500 font-bold">6</span> Apresiasi untuk Pasangan</h4>
+                    <p class="text-[10px] text-slate-400 mb-4 italic">Contoh: Selalu ngabarin, sabar menghadapi aku, meluangkan waktu telepon, dll.</p>
+                    <textarea onchange="updateEvalData('appreciation', this.value)" id="eval-appreciation" placeholder="Tuliskan hal yang kamu hargai dari pasangan bulan ini..." class="w-full bg-slate-50 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-rose-200 h-32 text-sm"></textarea>
+                </div>
+
+                <!-- 7. Evaluasi Diri -->
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+                    <h4 class="text-xl font-bold mb-6 text-rose-500 flex items-center gap-3"><span class="w-10 h-10 bg-rose-100 rounded-xl flex items-center justify-center text-rose-500 font-bold">7</span> Evaluasi Diri Sendiri</h4>
+                    <p class="text-[10px] text-slate-400 mb-4 italic">Refleksi: Apakah aku terlalu menuntut? Apakah aku sudah jadi pasangan yang baik di LDR?</p>
+                    <textarea onchange="updateEvalData('self_eval', this.value)" id="eval-self_eval" placeholder="Tulis jawaban refleksimu di sini..." class="w-full bg-slate-50 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-rose-200 h-32 text-sm"></textarea>
+                </div>
+
+                <!-- 8. Harapan -->
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+                    <h4 class="text-xl font-bold mb-6 text-rose-500 flex items-center gap-3"><span class="w-10 h-10 bg-rose-100 rounded-xl flex items-center justify-center text-rose-500 font-bold">8</span> Harapan untuk Bulan Depan</h4>
+                    <textarea onchange="updateEvalData('hopes', this.value)" id="eval-hopes" placeholder="Misal: Lebih sering video call, nabung untuk ketemu, dll..." class="w-full bg-slate-50 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-rose-200 h-32 text-sm"></textarea>
+                </div>
+
+                <!-- 9. Penilaian Akhir -->
+                <div class="bg-rose-500 p-10 rounded-[3rem] text-white shadow-xl shadow-rose-200">
+                    <h4 class="text-2xl font-bold mb-6 flex items-center gap-3"><span class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-white font-bold">9</span> Penilaian Hubungan</h4>
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-bold mb-2 opacity-90">Nilai Hubungan LDR Bulan Ini (1-10): <span id="display-overall_score" class="text-white font-black">5</span></label>
+                            <input type="range" min="1" max="10" oninput="document.getElementById('display-overall_score').innerText = this.value" onchange="updateEvalData('overall_score', this.value)" id="eval-overall_score" class="w-full accent-white">
+                        </div>
+                        <textarea onchange="updateEvalData('overall_reason', this.value)" id="eval-overall_reason" placeholder="Alasan pemberian nilai..." class="w-full bg-white/10 border-2 border-white/20 rounded-2xl p-4 outline-none focus:border-white/50 h-32 text-sm placeholder:text-rose-200"></textarea>
+                    </div>
+                    <div class="mt-8 text-center">
+                        <button onclick="showTab('dashboard')" class="bg-white text-rose-500 px-10 py-4 rounded-2xl font-bold shadow-lg hover:scale-105 active:scale-95 transition-all">Simpan & Kembali</button>
+                    </div>
                 </div>
             </div>
         </section>
 
         <!-- TAB: DISKUSI -->
         <section id="tab-diskusi" class="tab-content hidden space-y-8 animate-reveal">
-             <div class="bg-slate-900 text-white p-12 rounded-[3.5rem] shadow-2xl">
-                 <h3 class="text-4xl font-serif font-bold mb-4">Deep Talk Session</h3>
-                 <p class="text-slate-400">Poin diskusi bersama pasangan. Isilah catatan bersama di bawah ini.</p>
+             <div class="bg-slate-900 text-white p-12 rounded-[3.5rem] shadow-2xl relative overflow-hidden">
+                 <div class="relative z-10">
+                    <h3 class="text-4xl font-serif font-bold mb-4">Deep Talk Session</h3>
+                    <p class="text-slate-400 leading-relaxed max-w-xl">Diskusi berdua sangat penting untuk LDR. Catat hasil bincang-bincang kalian di bawah ini.</p>
+                 </div>
+                 <div class="absolute -right-10 -bottom-10 opacity-10">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 24 24" fill="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                 </div>
              </div>
-             <div id="discussion-list" class="space-y-6 max-w-3xl mx-auto">
-                <!-- Discussion items will be populated by JS -->
-             </div>
+             <div id="discussion-list" class="space-y-6 max-w-3xl mx-auto pb-10"></div>
         </section>
 
         <!-- TAB: PROFIL -->
         <section id="tab-profil" class="tab-content hidden max-w-2xl mx-auto space-y-8 animate-reveal">
             <div class="bg-white p-10 rounded-[3rem] shadow-xl text-center">
                 <div class="relative w-40 h-40 mx-auto group">
-                    <div id="profile-img-container" class="w-full h-full rounded-[2.5rem] bg-rose-50 flex items-center justify-center text-rose-500 text-5xl font-black overflow-hidden border-4 border-white shadow-lg">?</div>
-                    <label class="absolute bottom-0 right-0 bg-slate-800 text-white p-3 rounded-2xl cursor-pointer shadow-xl">
+                    <div id="profile-img-container" class="w-full h-full rounded-[2.5rem] bg-rose-50 flex items-center justify-center text-rose-500 text-5xl font-black overflow-hidden border-4 border-white shadow-lg relative shadow-inner">?</div>
+                    <div id="profile-upload-spinner" class="hidden absolute inset-0 bg-black/20 rounded-[2.5rem] flex items-center justify-center z-10">
+                        <div class="upload-spinner"></div>
+                    </div>
+                    <label class="absolute bottom-0 right-0 bg-slate-800 text-white p-3 rounded-2xl cursor-pointer shadow-xl hover:bg-slate-700 transition-colors z-20">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                        <input type="file" class="hidden" accept="image/*" onchange="uploadProfilePhoto(this)">
+                        <input type="file" class="hidden" accept="image/*" onchange="handleProfilePhoto(this)">
                     </label>
                 </div>
-                <input type="text" id="profile-name-input" onchange="updateProfileName(this.value)" class="text-3xl font-serif font-bold text-slate-800 text-center mt-8 w-full bg-transparent outline-none focus:border-b-2 border-rose-200">
+                <input type="text" id="profile-name-input" onchange="updateProfileName(this.value)" class="text-3xl font-serif font-bold text-slate-800 text-center mt-8 w-full bg-transparent outline-none focus:border-b-2 border-rose-200" placeholder="Namamu">
                 <button onclick="logout()" class="mt-10 text-rose-400 font-bold uppercase text-xs tracking-widest hover:text-rose-600 transition-colors">Ganti Akun Pengguna</button>
             </div>
         </section>
@@ -257,7 +375,7 @@
 
     <div id="save-toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3 transform translate-y-32 opacity-0 transition-all duration-500 z-[200]">
         <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-        <span class="text-sm font-bold">Cloud Synced!</span>
+        <span id="toast-text" class="text-sm font-bold">Sinkronisasi Cloud Berhasil!</span>
     </div>
 
     <!-- Firebase SDKs -->
@@ -266,10 +384,11 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Global Variables
+        // ==========================================
+        // CONFIG FIREBASE (HARUS DIISI)
+        // ==========================================
         let firebaseConfig;
         try {
-            // Environment variable or local fallback
             firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
                 apiKey: "", 
                 authDomain: "",
@@ -278,14 +397,10 @@
                 messagingSenderId: "",
                 appId: ""
             };
-        } catch(e) {
-            console.error("Firebase config parse error", e);
-            firebaseConfig = {};
-        }
+        } catch(e) { firebaseConfig = {}; }
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'syave-default';
         
-        // Hide loading screen helper
         const hideLoading = () => {
             const screen = document.getElementById('loading-screen');
             if (screen) {
@@ -294,11 +409,10 @@
             }
         };
 
-        // If config is missing, just let user see UI (but sync won't work)
         if (!firebaseConfig.apiKey) {
-            console.warn("Firebase API key missing. Running in local-only mode.");
+            console.warn("Firebase Config belum diisi.");
             document.getElementById('loading-text').innerText = "Konfigurasi Belum Siap...";
-            setTimeout(hideLoading, 1500);
+            setTimeout(hideLoading, 2000);
         } else {
             const app = initializeApp(firebaseConfig);
             const auth = getAuth(app);
@@ -306,7 +420,7 @@
 
             window.currentUserId = null;
             window.currentMonth = new Date().toISOString().slice(0, 7);
-            let profiles = { wira: { name: 'Wira' }, bahja: { name: 'Bahja' } };
+            window.profiles = { wira: { name: 'Wira' }, bahja: { name: 'Bahja' } };
 
             const initAuth = async () => {
                 try {
@@ -317,7 +431,7 @@
                     }
                 } catch(e) {
                     console.error("Auth failed:", e);
-                    hideLoading(); // Don't get stuck
+                    hideLoading();
                 }
             };
 
@@ -330,57 +444,144 @@
                 }
             });
 
+            // --- FUNCTIONS ---
+
             window.updateProfileName = async (name) => {
                 if(!window.currentUserId || !auth.currentUser) return;
                 const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'profiles', window.currentUserId);
                 await setDoc(docRef, { name }, { merge: true });
-                showToast();
+                showToast("Nama diperbarui!");
             };
 
             window.updateEvalData = async (field, value) => {
                 if(!window.currentUserId || !auth.currentUser) return;
                 const docId = `${window.currentMonth}_${window.currentUserId}`;
                 const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'evaluations', docId);
-                const updateObj = { [field]: value, userId: window.currentUserId, month: window.currentMonth };
-                await setDoc(docRef, updateObj, { merge: true });
-                const disp = document.getElementById(`display-${field}`);
-                if(disp) disp.innerText = value;
-                showToast();
+                await setDoc(docRef, { [field]: value, userId: window.currentUserId, month: window.currentMonth }, { merge: true });
+                showToast("Tersimpan otomatis!");
             };
 
             window.updateSharedData = async (field, value) => {
                 if(!auth.currentUser) return;
                 const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'shared_metadata', 'main');
                 await setDoc(docRef, { [field]: value }, { merge: true });
-                showToast();
+                showToast("Link diperbarui!");
             };
 
-            window.uploadProfilePhoto = async (input) => {
-                if (input.files && input.files[0] && auth.currentUser) {
-                    const reader = new FileReader();
-                    reader.onload = async (e) => {
-                        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'profiles', window.currentUserId);
-                        await setDoc(docRef, { photoUrl: e.target.result }, { merge: true });
-                    };
-                    reader.readAsDataURL(input.files[0]);
+            window.saveDiscussionNote = async (id, value) => {
+                 if(!auth.currentUser) return;
+                 const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'shared_discussions', `month_${window.currentMonth}`);
+                 await setDoc(docRef, { [id]: value }, { merge: true });
+                 showToast("Catatan disimpan!");
+            };
+
+            // --- PHOTO COMPRESSION AND UPLOAD ---
+
+            const compressAndUpload = async (file, pathSegments, loadingId) => {
+                const spinner = document.getElementById(loadingId);
+                if(spinner) spinner.classList.remove('hidden');
+                
+                try {
+                    // Batasi ukuran lebih kecil agar aman di Firestore (maks 400px, kualitas 0.5)
+                    const base64 = await resizeImage(file, 400, 400, 0.5); 
+                    const docRef = doc(db, ...pathSegments);
+                    await setDoc(docRef, { photoUrl: base64 }, { merge: true });
+                    
+                    // Paksa update UI lokal untuk respons instan
+                    updateUI(); 
+                    showToast("Foto berhasil diunggah!");
+                } catch (err) {
+                    console.error("Upload error:", err);
+                    showToast("Gagal unggah foto. Pastikan internet stabil.", true);
+                } finally {
+                    if(spinner) spinner.classList.add('hidden');
                 }
             };
 
-            window.uploadSharedPhoto = async (input) => {
+            window.handleProfilePhoto = async (input) => {
                 if (input.files && input.files[0] && auth.currentUser) {
-                    const reader = new FileReader();
-                    reader.onload = async (e) => {
-                        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'shared_metadata', 'main');
-                        await setDoc(docRef, { photoUrl: e.target.result }, { merge: true });
-                    };
-                    reader.readAsDataURL(input.files[0]);
+                    await compressAndUpload(input.files[0], 
+                        ['artifacts', appId, 'public', 'data', 'profiles', window.currentUserId], 
+                        'profile-upload-spinner');
                 }
             };
+
+            window.handleSharedPhoto = async (input) => {
+                if (input.files && input.files[0] && auth.currentUser) {
+                    await compressAndUpload(input.files[0], 
+                        ['artifacts', appId, 'public', 'data', 'shared_metadata', 'main'], 
+                        'shared-upload-spinner');
+                }
+            };
+
+            function setupListeners(db, appId) {
+                onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'profiles'), (snapshot) => {
+                    snapshot.forEach(doc => { window.profiles[doc.id] = doc.data(); });
+                    updateUI();
+                });
+
+                onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'evaluations'), (snapshot) => {
+                    const allEvals = {};
+                    snapshot.forEach(doc => { allEvals[doc.id] = doc.data(); });
+                    window.allEvals = allEvals;
+                    updateDashboardStats();
+                });
+
+                onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'shared_metadata', 'main'), (doc) => {
+                    if(doc.exists()) {
+                        window.sharedData = doc.data();
+                        updateSharedUI();
+                    }
+                });
+
+                onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'shared_discussions', `month_${window.currentMonth}`), (doc) => {
+                    if(doc.exists()) {
+                        window.sharedDiscussions = doc.data();
+                        populateDiscussion();
+                    }
+                });
+            }
 
             initAuth();
         }
 
-        // --- GLOBAL UI HELPERS ---
+        // --- CORE LOGIC RESIZE ---
+        function resizeImage(file, maxWidth, maxHeight, quality = 0.7) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > maxWidth) {
+                                height *= maxWidth / width;
+                                width = maxWidth;
+                            }
+                        } else {
+                            if (height > maxHeight) {
+                                width *= maxHeight / height;
+                                height = maxHeight;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                };
+                reader.onerror = e => reject(e);
+            });
+        }
+
+        // --- GLOBAL UI ---
         window.login = (userId) => {
             window.currentUserId = userId;
             const modal = document.getElementById('login-modal');
@@ -388,6 +589,7 @@
             initDashboard();
             updateUI();
             createHearts();
+            populateDiscussion();
         };
 
         window.logout = () => { location.reload(); };
@@ -400,52 +602,35 @@
             if (tab) tab.classList.remove('hidden');
             if (btn) btn.classList.add('tab-active');
             if (tabId === 'evaluasi') syncFormFields();
+            if (tabId === 'diskusi') populateDiscussion();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         };
-
-        function setupListeners(db, appId) {
-            // Profiles listener
-            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'profiles'), (snapshot) => {
-                let profiles = window.profiles || { wira: { name: 'Wira' }, bahja: { name: 'Bahja' } };
-                snapshot.forEach(doc => { profiles[doc.id] = doc.data(); });
-                window.profiles = profiles;
-                updateUI();
-            }, (err) => console.error("Profile listen error", err));
-
-            // Evaluations listener
-            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'evaluations'), (snapshot) => {
-                const allEvals = {};
-                snapshot.forEach(doc => { allEvals[doc.id] = doc.data(); });
-                window.allEvals = allEvals;
-                updateDashboardStats();
-            }, (err) => console.error("Eval listen error", err));
-
-            // Shared metadata listener
-            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'shared_metadata', 'main'), (doc) => {
-                if(doc.exists()) {
-                    window.sharedData = doc.data();
-                    updateSharedUI();
-                }
-            }, (err) => console.error("Shared data listen error", err));
-        }
 
         function updateUI() {
             if(!window.currentUserId || !window.profiles) return;
             const me = window.profiles[window.currentUserId];
+            
+            // Profil tab
             const nameInput = document.getElementById('profile-name-input');
             if(nameInput) nameInput.value = me?.name || (window.currentUserId === 'wira' ? 'Lalu Wira Sandi' : 'Bahjatunnisa');
             
+            // Avatar Header
             const avatar = document.getElementById('user-avatar');
+            // Avatar Profil Tab
             const profCont = document.getElementById('profile-img-container');
             
-            if(me?.photoUrl) {
-                if(avatar) avatar.innerHTML = `<img src="${me.photoUrl}" class="w-full h-full object-cover">`;
-                if(profCont) profCont.innerHTML = `<img src="${me.photoUrl}" class="w-full h-full object-cover">`;
+            const photoSrc = me?.photoUrl;
+            if(photoSrc) {
+                const imgHtml = `<img src="${photoSrc}" class="w-full h-full object-cover">`;
+                if(avatar) avatar.innerHTML = imgHtml;
+                if(profCont) profCont.innerHTML = imgHtml;
             } else {
-                const init = (me?.name || (window.currentUserId === 'wira' ? 'W' : 'B')).charAt(0);
-                if(avatar) avatar.innerText = init;
-                if(profCont) profCont.innerText = init;
+                const initials = (me?.name || (window.currentUserId === 'wira' ? 'W' : 'B')).charAt(0);
+                if(avatar) avatar.innerText = initials;
+                if(profCont) profCont.innerText = initials;
             }
 
+            // Dashboard Avatars
             const wName = document.getElementById('dash-name-wira');
             const bName = document.getElementById('dash-name-bahja');
             if(wName) wName.innerText = window.profiles.wira?.name || 'Lalu Wira Sandi';
@@ -462,6 +647,8 @@
             const photoPrev = document.getElementById('photo-preview');
             if(data.photoUrl && photoPrev) {
                 photoPrev.innerHTML = `<img src="${data.photoUrl}" class="w-full h-full object-cover">`;
+                const label = document.getElementById('shared-photo-label');
+                if(label) label.innerText = "Ganti Foto";
             }
             const ttInput = document.getElementById('tiktok-input');
             const ttCont = document.getElementById('tiktok-container');
@@ -475,10 +662,8 @@
 
         function updateDashboardStats() {
             if(!window.allEvals) return;
-            const wDocId = `${window.currentMonth}_wira`;
-            const bDocId = `${window.currentMonth}_bahja`;
-            const wData = window.allEvals[wDocId] || {};
-            const bData = window.allEvals[bDocId] || {};
+            const wData = window.allEvals[`${window.currentMonth}_wira`] || {};
+            const bData = window.allEvals[`${window.currentMonth}_bahja`] || {};
 
             const wScore = parseFloat(wData.overall_score || 0);
             const bScore = parseFloat(bData.overall_score || 0);
@@ -490,7 +675,7 @@
             const updateBadge = (id, data) => {
                 const el = document.getElementById(id);
                 if(!el) return;
-                const isDone = Object.keys(data).length > 3;
+                const isDone = Object.keys(data).length > 5;
                 el.innerText = isDone ? 'Selesai' : 'Pending';
                 el.className = `text-[10px] mt-2 inline-block px-3 py-1 rounded-full font-bold ${isDone ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`;
             };
@@ -505,8 +690,10 @@
             const canvas = document.getElementById('radarChart');
             if (!canvas) return;
             const ctx = canvas.getContext('2d');
-            const scoresW = [wData.comm_score || 0, wData.trust_score || 0, wData.overall_score || 0, 5, 5, 5];
-            const scoresB = [bData.comm_score || 0, bData.trust_score || 0, bData.overall_score || 0, 5, 5, 5];
+            
+            const getVal = (v) => parseFloat(v || 0);
+            const scoresW = [getVal(wData.comm_score), getVal(wData.trust_score), getVal(wData.overall_score), 5, 5, 5];
+            const scoresB = [getVal(bData.comm_score), getVal(bData.trust_score), getVal(bData.overall_score), 5, 5, 5];
 
             if(radarInstance) radarInstance.destroy();
             radarInstance = new Chart(ctx, {
@@ -514,17 +701,21 @@
                 data: {
                     labels: ['Comm', 'Trust', 'Overall', 'Quality', 'Effort', 'Feel'],
                     datasets: [
-                        { label: 'Wira', data: scoresW, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)' },
-                        { label: 'Bahja', data: scoresB, borderColor: '#ec4899', backgroundColor: 'rgba(236, 72, 153, 0.1)' }
+                        { label: 'Wira', data: scoresW, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderWidth: 3, pointRadius: 0 },
+                        { label: 'Bahja', data: scoresB, borderColor: '#ec4899', backgroundColor: 'rgba(236, 72, 153, 0.1)', borderWidth: 3, pointRadius: 0 }
                     ]
                 },
-                options: { responsive: true, maintainAspectRatio: false, scales: { r: { beginAtZero: true, max: 10 } } }
+                options: { 
+                    responsive: true, maintainAspectRatio: false, 
+                    scales: { r: { beginAtZero: true, max: 10, ticks: { display: false } } },
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } }
+                }
             });
         }
 
         function syncFormFields() {
-            const docId = `${window.currentMonth}_${window.currentUserId}`;
-            const data = (window.allEvals || {})[docId] || {};
+            const data = (window.allEvals || {})[`${window.currentMonth}_${window.currentUserId}`] || {};
+            
             ['comm_score', 'trust_score', 'overall_score'].forEach(key => {
                 const val = data[key] || 5;
                 const el = document.getElementById(`eval-${key}`);
@@ -532,17 +723,63 @@
                 if(el) el.value = val;
                 if(disp) disp.innerText = val;
             });
-            ['comm_notes', 'trust_notes', 'overall_reason'].forEach(key => {
+
+            ['comm_good', 'comm_bad', 'qt_best', 'qt_next', 'trust_notes', 'conflict_desc', 'conflict_solve', 'conflict_status', 'feeling_notes', 'appreciation', 'self_eval', 'hopes', 'overall_reason'].forEach(key => {
                 const el = document.getElementById(`eval-${key}`);
                 if(el) el.value = data[key] || '';
             });
+
+            ['comm_freq', 'qt_freq', 'feeling'].forEach(field => {
+                const val = data[field];
+                const container = document.getElementById(`group-${field}`);
+                if(container) {
+                    container.querySelectorAll('.option-btn').forEach(btn => {
+                        btn.classList.toggle('option-btn-active', btn.innerText === val);
+                    });
+                }
+            });
         }
 
-        function showToast() {
+        const discQuestions = [
+            "Apakah kamu masih bahagia menjalani LDR sama aku?",
+            "Apa yang paling kamu suka dari hubungan kita bulan ini?",
+            "Apa yang kurang dari aku bulan ini?",
+            "Apa yang bisa kita perbaiki bulan depan?",
+            "Apakah kamu merasa aku cukup hadir walaupun jauh?",
+            "Kapan kita mau merencanakan ketemu?",
+            "Apa yang harus kita pertahankan dari hubungan ini?"
+        ];
+
+        function populateDiscussion() {
+            const list = document.getElementById('discussion-list');
+            if(!list) return;
+            list.innerHTML = '';
+            const data = window.sharedDiscussions || {};
+            discQuestions.forEach((q, i) => {
+                const item = document.createElement('div');
+                item.className = "bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 animate-reveal";
+                item.style.animationDelay = (i * 0.1) + 's';
+                item.innerHTML = `
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 bg-slate-800 text-white rounded-xl flex items-center justify-center shrink-0 font-bold text-sm">${i+1}</div>
+                        <div class="flex-1">
+                            <p class="font-bold text-slate-800 mb-4">${q}</p>
+                            <textarea onchange="saveDiscussionNote('${i}', this.value)" placeholder="Tulis catatan diskusi kalian..." class="w-full bg-slate-50 p-4 rounded-2xl outline-none border-2 border-transparent focus:border-slate-200 text-sm h-24">${data[i] || ''}</textarea>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function showToast(text, isError = false) {
             const toast = document.getElementById('save-toast');
+            const toastText = document.getElementById('toast-text');
             if(toast) {
+                toastText.innerText = text;
+                toast.classList.toggle('bg-red-600', isError);
                 toast.classList.remove('translate-y-32', 'opacity-0');
-                setTimeout(() => toast.classList.add('translate-y-32', 'opacity-0'), 2000);
+                setTimeout(() => toast.classList.add('translate-y-32', 'opacity-0'), 2500);
             }
         }
 
@@ -554,10 +791,9 @@
                 heart.className = 'heart-particle';
                 heart.innerHTML = '❤️';
                 heart.style.left = Math.random() * 100 + 'vw';
-                heart.style.fontSize = (Math.random() * 20 + 10) + 'px';
                 container.appendChild(heart);
                 setTimeout(() => heart.remove(), 6000);
-            }, 1500);
+            }, 2000);
         }
 
         window.initDashboard = () => {
@@ -578,9 +814,9 @@
             if(sel) {
                 window.currentMonth = sel.value;
                 updateDashboardStats();
+                populateDiscussion();
             }
         };
-
     </script>
 </body>
 </html>
